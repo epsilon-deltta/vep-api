@@ -1,0 +1,4 @@
+*.psl filter=lfs diff=lfs merge=lfs -text
+jkgenome_test/refFlat.pkl filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text

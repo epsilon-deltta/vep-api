@@ -45,14 +45,20 @@ def index(request):
 @csrf_exempt 
 #  seq/    
 def seq(request):
-    context={}
-    context['value'] = sp.get_mes3(request.POST.get('seq'))
-    response         = HttpResponse(simplejson.dumps(context), content_type="application/json")
+    context  = {}
+    if request.body is not None:
+        data = json.loads(request.body)
+        context  = sp.get_hexamer_track_info(data['seq'])
+    else:
+        print("It's empty")
+    response = HttpResponse(simplejson.dumps(context), content_type="application/json")
     return response
 @csrf_exempt 
 def test_client_json(request):
     print("-==========-")
-    print(request.)
+    print(request.body)
+    data = json.loads(request.body)
+    print(data['test'])
     if request.is_ajax():
         print("==========")
         if request.method == 'POST':
