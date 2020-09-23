@@ -1164,7 +1164,7 @@ class InitiationFailureException(Exception): pass
 
 
 class locus: # UCSC type
-
+    
     def __init__(self,loc,id=''):
 
         rm = re.match('([^:]+):([0-9,]+)-([0-9,]+)([+-])',loc) # base-0, base-1
@@ -1261,10 +1261,13 @@ class locus: # UCSC type
 #        nibFragFile.readline()
 #
 #        return nibFragFile.read().replace('\n','').rstrip().upper()
-
+    import platform as pl
     def twoBitFrag(self, assembly, buffer5p=0, buffer3p=0):
-
-        twoBitFilePath='/%s/D/Sequences/%s/%s.2bit' % (homedir,assembly,assembly)
+        sep = os.path.sep
+        homedir = os.path.abspath(os.path.dirname(__file__)+sep+'data')
+        print(homedir)
+        print(assembly)
+        twoBitFilePath='%s/D/Sequences/%s/%s.2bit' % (homedir,assembly,assembly)
 
         if self.strand == '+':
             staPos = self.chrSta - buffer5p
@@ -1272,8 +1275,11 @@ class locus: # UCSC type
         else:
             staPos = self.chrSta - buffer3p
             endPos = self.chrEnd + buffer5p
-
-        fragFile = os.popen('%s/tools/jkent/twoBitToFa %s:%s:%s-%s stdout' % (homedir, twoBitFilePath, self.chrom, staPos, endPos), 'r')
+        print(twoBitFilePath,'  chrom:',self.chrom,'  stapos: ',staPos,'  endpos: ',endPos)
+        if pl.system().lower() =='windows':
+            fragFile = os.popen
+        else:            
+            fragFile = os.popen('%s/tools/jkent/twoBitToFa %s:%s:%s-%s stdout' % (homedir, twoBitFilePath, self.chrom, staPos, endPos), 'r')
         fragFile.readline()
 
         seq = fragFile.read().replace('\n','').rstrip().upper()
