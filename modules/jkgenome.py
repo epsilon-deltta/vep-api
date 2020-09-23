@@ -18,8 +18,8 @@ if socket.gethostname().startswith('MacBook-Pro'):
     homedir = '/Users/jinkuk/'
 else:
     homedir = '/home/jk85/'
-
-homedir="D:" # added 
+sep = os.path.sep
+homedir=os.path.dirname(__file__) +sep + 'data'
 # refFlat_path = '/%s/D/Sequences/hg19/refseq/refFlat_hg19.txt' % (homedir,) //
 refFlat_path = '%s/D/refFlat.txt' %(homedir) #added 
 def loadFasta(fastaPath='%s/D/Sequences/gencode_24/gencode.v24lift37.pc_transcripts.fa.gz' % homedir, blacklist=['NR_106988']):
