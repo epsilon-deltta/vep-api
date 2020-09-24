@@ -11,6 +11,7 @@ import dna.seq_processor as sp
 # from .serializers import UserSerializer
 # from rest_framework import status
 
+
 # Create your views here.
 
 def shaodi(request):
@@ -53,9 +54,9 @@ def seq(request):
         print("It's empty")
     response = HttpResponse(simplejson.dumps(context), content_type="application/json")
     return response
+
 @csrf_exempt 
 def test_client_json(request):
-    print("-==========-")
     print(request.body)
     data = json.loads(request.body)
     print(data['test'])
@@ -64,3 +65,15 @@ def test_client_json(request):
         if request.method == 'POST':
             print('Raw Data: %s' % request.body)   
     return HttpResponse("OK")
+
+@csrf_exempt 
+def spliceAi(request):
+    context ={}
+    if request.body is not None:
+        data = json.loads(request.body)
+        context  = sp.get_hexamer_track_info(data['seq'])
+    else:
+        print("It's empty")
+    response = HttpResponse(simplejson.dumps(context), content_type="application/json")
+    return response
+
