@@ -6,7 +6,7 @@ def get_mes3(seq):
 # base64    
 def get_hexamer_track_info(seq='GCACCAAAGGAGGAAATCTGCCTGCATGATCCAATCACCTCCCATCAGGCCCCACCTCCAACATTGGGTATT'):
     seq.upper()
-    if seq.count(',')==3:
+    if seq.count(',') == 3:
         seq = get_position_To_seq(seq)
 
     track_data = jk.hexamer_track(seq)
@@ -23,7 +23,7 @@ def get_hexamer_track_info(seq='GCACCAAAGGAGGAAATCTGCCTGCATGATCCAATCACCTCCCATCAG
     return track_data
 
 def get_position_To_seq(seq):
-    arg = seq.split(',')
+    arg   = seq.split(',')
     locus = jk.locus('%s:%s-%s%s' % tuple(arg))
     seq   = locus.twoBitFrag('hg38')
     return seq
