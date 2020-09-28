@@ -1,6 +1,8 @@
-import jkgenome as jk
+    
 import base64
 import os
+import jkgenome as jk
+
 def get_mes3(seq):
     return jk.mes3(seq)
 # base64    
