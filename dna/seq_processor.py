@@ -11,8 +11,11 @@ def get_hexamer_track_info(seq='GCACCAAAGGAGGAAATCTGCCTGCATGATCCAATCACCTCCCATCAG
     if seq.count(',') == 3:
         seq = get_position_To_seq(seq)
 
-    track_data = jk.hexamer_track(seq)
-    fpath = track_data['path']
+    # print("="*20,'\n',"="*20,'\n',"="*20,'\n',"="*20)
+    # print("this is seq :",seq)
+    track_data        = jk.hexamer_track(seq)
+    track_data['seq'] = seq
+    fpath             = track_data['path']
     
     if os.path.isfile(fpath):
         with open(fpath, 'rb') as img:
@@ -24,7 +27,7 @@ def get_hexamer_track_info(seq='GCACCAAAGGAGGAAATCTGCCTGCATGATCCAATCACCTCCCATCAG
     del track_data['path']
     return track_data
 
-def get_position_To_seq(seq):
+def get_position_To_seq(seq="chr14,31549779,31549850,+"):
     arg   = seq.split(',')
     locus = jk.locus('%s:%s-%s%s' % tuple(arg))
     seq   = locus.twoBitFrag('hg38')

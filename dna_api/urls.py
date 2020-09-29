@@ -7,6 +7,7 @@ urlpatterns = [
     path('test', views.index, name='index'),
     path('client', views.test_client_json, name='index'),
     path('splice',views.spliceAi,name="spliceAi"),
+    path('test0',views.test,name="test0"),
     # path('<int:question_id>/', views.detail, name='detail'),
     # # ex: /polls/5/results/
     # path('<int:question_id>/results/', views.results, name='results'),

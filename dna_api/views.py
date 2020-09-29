@@ -77,3 +77,6 @@ def spliceAi(request):
     response = HttpResponse(simplejson.dumps(context), content_type="application/json")
     return response
 
+def test(request):
+    return HttpResponse("Test successed")
+    

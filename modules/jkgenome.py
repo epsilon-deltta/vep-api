@@ -1152,6 +1152,8 @@ def hexamer_track(seq,hexH4=None,figPath='default'):
         num = rd.randrange(0,500)   # it's for rainy day ,if many people access file,..
         sp=os.path.sep
         savedPath ='%shexamer_track'% (os.path.dirname(__file__)+sp+'output'+sp)+str(num)+'.png' 
+        print("saved path :",savedPath)
+        
         fig.savefig(savedPath)
         # fig.savefig('%s/hexamer_track.pdf' % homedir) //original
         scoreH['path']=savedPath 
@@ -1261,8 +1263,8 @@ class locus: # UCSC type
 #        nibFragFile.readline()
 #
 #        return nibFragFile.read().replace('\n','').rstrip().upper()
-    import platform as pl
     def twoBitFrag(self, assembly, buffer5p=0, buffer3p=0):
+        import platform as pl
         sep = os.path.sep
         homedir = os.path.abspath(os.path.dirname(__file__)+sep+'data')
         print(homedir)
