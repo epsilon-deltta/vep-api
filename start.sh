@@ -1,0 +1,1 @@
+django-nginx-setup --working-directory example-project --static-directory static --static-alias /static --wsgi-module djg_api.wsgi
