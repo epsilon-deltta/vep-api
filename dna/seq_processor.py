@@ -32,7 +32,7 @@ def get_position_To_seq(seq="chr14,31549779,31549850,+"):
     locus = jk.locus('%s:%s-%s%s' % tuple(arg))
     seq   = locus.twoBitFrag('hg38')
     return seq
-
+# =========================================================
 def get_splice_ai(seq):
     context = jk.spliceAI(seq)
     return context
