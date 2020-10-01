@@ -14,26 +14,17 @@ assemblyH = {'hg18':'/data1/Sequence/ucsc_hg18/hg18_nh.fa', 'hg19':'/data1/Seque
 
 import socket
 
-# these homedir settings r gonna be ignored 
-# ============original-code
-# if socket.gethostname().startswith('MacBook-Pro'):
-#     homedir = '/Users/jinkuk/'
-# else:
-#     homedir = '/home/jk85/'
-# ~~~~~~~~~~~~~~~~~~~~~
-# =========changed-code
+if socket.gethostname().startswith('MacBook-Pro'):
+    homedir = '/Users/jinkuk/'
+else:
+    homedir = '/home/jk85/'
 sep = os.path.sep
 homedir=os.path.dirname(__file__) +sep + 'data'
-
-
-# ============original-code
-# refFlat_path = '/%s/D/Sequences/hg19/refseq/refFlat_hg19.txt' % (homedir,) 
-# ============changed-code
-refFlat_path = '%s/D/refFlat.txt' %(homedir) 
-
+# refFlat_path = '/%s/D/Sequences/hg19/refseq/refFlat_hg19.txt' % (homedir,) //
+refFlat_path = '%s/D/refFlat.txt' %(homedir) #added 
 def loadFasta(fastaPath='%s/D/Sequences/gencode_24/gencode.v24lift37.pc_transcripts.fa.gz' % homedir, blacklist=['NR_106988']):
 
-    h = collections.defaultdict(list)    
+    h = collections.defaultdict(list)
 
     if fastaPath.endswith('.gz'):
         f = gzip.open(fastaPath)
@@ -979,7 +970,7 @@ def spliceAI(locusStr): # locusStr: 1-base, 1-base
 
 def tbi_bed_query(bedFilePath,locusStr):
 
-    f = os.popen('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr),'r')
+    f = os.popen('~/tools/tabix-0.2.6/tabix %s %s' % (bedFilePath,locusStr),'r')
 
     return f.readlines()
 
