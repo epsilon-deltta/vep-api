@@ -14,23 +14,18 @@ assemblyH = {'hg18':'/data1/Sequence/ucsc_hg18/hg18_nh.fa', 'hg19':'/data1/Seque
 
 import socket
 
-# these homedir settings r gonna be ignored 
-# ============original-code
-# if socket.gethostname().startswith('MacBook-Pro'):
-#     homedir = '/Users/jinkuk/'
-# else:
-#     homedir = '/home/jk85/'
-# ~~~~~~~~~~~~~~~~~~~~~
-# =========changed-code
+# these homedir setting r gonna be ignored
+# ============
+if socket.gethostname().startswith('MacBook-Pro'):
+    homedir = '/Users/jinkuk/'
+else:
+    homedir = '/home/jk85/'
+# ============
+
 sep = os.path.sep
 homedir=os.path.dirname(__file__) +sep + 'data'
-
-
-# ============original-code
-# refFlat_path = '/%s/D/Sequences/hg19/refseq/refFlat_hg19.txt' % (homedir,) 
-# ============changed-code
-refFlat_path = '%s/D/refFlat.txt' %(homedir) 
-
+# refFlat_path = '/%s/D/Sequences/hg19/refseq/refFlat_hg19.txt' % (homedir,) //
+refFlat_path = '%s/D/refFlat.txt' %(homedir) #added 
 def loadFasta(fastaPath='%s/D/Sequences/gencode_24/gencode.v24lift37.pc_transcripts.fa.gz' % homedir, blacklist=['NR_106988']):
 
     h = collections.defaultdict(list)    
@@ -935,7 +930,7 @@ def spliceAI_raw(locusStr): # locusStr: 1-base, 1-base
 
     if locusStr[:3] == 'chr':
         locusStr = locusStr[3:]
-
+    print("splice_raw")
     #posSta,posEnd = map(int,locusStr.split(':')[-1].split('-'))
 
     return tbi_bed_query('%s/BigFiles/SpliceAI/spliceai_scores.raw.snv.hg38.vcf.gz' % homedir, locusStr) + tbi_bed_query('%s/BigFiles/SpliceAI/spliceai_scores.raw.indel.hg38.vcf.gz' % homedir, locusStr)
@@ -955,9 +950,9 @@ def primateAI_raw(locusStr): # locusStr: 1-base, 1-base
 def spliceAI(locusStr): # locusStr: 1-base, 1-base
 
     result = []
-
+    
     for r in spliceAI_raw(locusStr):
-        
+        print("for======")
         tokL = r[:-1].split('\t')
 
         chrN = tokL[0]
@@ -970,17 +965,23 @@ def spliceAI(locusStr): # locusStr: 1-base, 1-base
 
         geneName = tL[1]
 
-        score = dict(zip(('AG','AL','DG','DL'),map(float,tL[2:6])))
-        relPos = dict(zip(('AG','AL','DG','DL'),map(int,tL[6:])))
+        score  = dict(zip(('AG','AL','DG','DL'),map(float,tL[2:6]) )  )
+        relPos = dict(zip(('AG','AL','DG','DL'),map(int,tL[6:])    )  )
 
         result.append({'chrN':chrN,'pos':pos,'ref':ref,'alt':alt,'geneName':geneName,'score':score,'relPos':relPos})
-
+    print("========terminated")
     return result
 
 def tbi_bed_query(bedFilePath,locusStr):
+    print("tbi-bed-func")
+    print("locustr",locusStr)
+    if os.path.isfile(bedFilePath) == False:
+        print("this is not file | There is not file")
+        raise FileNotFoundError
 
     f = os.popen('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr),'r')
-
+    print("readline :")
+    print(f.readline())
     return f.readlines()
 
 def variant_bi(chrNum,chrPos,strand,ref,alt,assembly='hg38',hexH4=False): # ref, alt: transcript base
