@@ -4,152 +4,28 @@ import sys, os, copy, re, gzip, collections
 import pandas as pd
 import numpy as np
 import jkbasic, jkbio
-# import socket
-import random as rd
 
-###############################################################
-###############################################################
+
+#RTK = ['AATK','AATYK','AATYK2','AATYK3','ACH','ALK','anaplastic lymphoma kinase','ARK','ATP:protein-tyrosine O-phosphotransferase [ambiguous]','AXL','Bek','Bfgfr','BRT','Bsk','C-FMS','CAK','CCK4','CD115','CD135','CDw135','Cek1','Cek10','Cek11','Cek2','Cek3','Cek5','Cek6','Cek7','CFD1','CKIT','CSF1R','DAlk','DDR1','DDR2','Dek','DKFZp434C1418','Drosophila Eph kinase','DRT','DTK','Ebk','ECK','EDDR1','Eek','EGFR','Ehk2','Ehk3','Elk','EPH','EPHA1','EPHA2','EPHA6','EPHA7','EPHA8','EPHB1','EPHB2','EPHB3','EPHB4','EphB5','ephrin-B3 receptor tyrosine kinase','EPHT','EPHT2','EPHT3','EPHX','ERBB','ERBB1','ERBB2','ERBB3','ERBB4','ERK','Eyk','FGFR1','FGFR2','FGFR3','FGFR4','FLG','FLK1','FLK2','FLT1','FLT2','FLT3','FLT4','FMS','Fv2','HBGFR','HEK11','HEK2','HEK3','HEK5','HEK6','HEP','HER2','HER3','HER4','HGFR','HSCR1','HTK','IGF1R','INSR','INSRR','insulin receptor protein-tyrosine kinase','IR','IRR','JTK12','JTK13','JTK14','JWS','K-SAM','KDR','KGFR','KIA0641','KIAA1079','KIAA1459','Kil','Kin15','Kin16','KIT','KLG','LTK','MCF3','Mdk1','Mdk2','Mdk5','MEhk1','MEN2A/B','Mep','MER','MERTK','MET','Mlk1','Mlk2','Mrk','MST1R','MTC1','MUSK','Myk1','N-SAM','NEP','NET','Neu','neurite outgrowth regulating kinase','NGL','NOK','nork','novel oncogene with kinase-domain','Nsk2','NTRK1','NTRK2','NTRK3','NTRK4','NTRKR1','NTRKR2','NTRKR3','Nuk','NYK','PCL','PDGFR','PDGFRA','PDGFRB','PHB6','protein-tyrosine kinase [ambiguous]','protein tyrosine kinase [ambiguous]','PTK','PTK3','PTK7','receptor protein tyrosine kinase','RET','RON','ROR1','ROR2','ROS1','RSE','RTK','RYK','SEA','Sek2','Sek3','Sek4','Sfr','SKY','STK','STK1','TEK','TIE','TIE1','TIE2','TIF','TKT','TRK','TRKA','TRKB','TRKC','TRKE','TYK1','TYRO10','Tyro11','TYRO3','Tyro5','Tyro6','TYRO7','UFO','VEGFR1','VEGFR2','VEGFR3','Vik','YK1','Yrk']
+#
+#TK = RTK + ['ABL','ABL1','ABL2','ABLL','ACK1','ACK2','AGMX1','ARG','ATK','ATP:protein-tyrosine O-phosphotransferase [ambiguous]','BLK','Bmk','BMX','BRK','Bsk','BTK','BTKL','CAKb','Cdgip','CHK','CSK','CTK','CYL','cytoplasmic protein tyrosine kinase','EMT','ETK','Fadk','FAK','FAK2','FER','Fert1/2','FES','FGR','focal adhesion kinase','FPS','FRK','FYN','HCK','HCTK','HYL','IMD1','ITK','IYK','JAK1','JAK2','JAK3','Janus kinase 1','Janus kinase 2','Janus kinase 3','JTK1','JTK9','L-JAK','LCK','LSK','LYN','MATK','Ntk','p60c-src protein tyrosine kinase','PKB','protein-tyrosine kinase [ambiguous]','PSCTK','PSCTK1','PSCTK2','PSCTK4','PSCTK5','PTK2','PTK2B','PTK6','PYK2','RAFTK','RAK','Rlk','Sik','SLK','SRC','SRC2','SRK','SRM','SRMS','STD','SYK','SYN','Tck','TEC','TNK1','Tsk','TXK','TYK2','TYK3','YES1','YK2','ZAP70']
+
 assemblyH = {'hg18':'/data1/Sequence/ucsc_hg18/hg18_nh.fa', 'hg19':'/data1/Sequence/ucsc_hg19/hg19_nh.fa', 'hg38':'/Z/DB/Homo_sapiens.GRCh38.dna.primary_assembly.fa'}
+
+import socket
+
+# these homedir setting r gonna be ignored
+# ============
+# if socket.gethostname().startswith('MacBook-Pro'):
+#     homedir = '/Users/jinkuk/'
+# else:
+#     homedir = '/home/jk85/'
+# ============
 
 sep = os.path.sep
 homedir=os.path.dirname(__file__) +sep + 'data'
+# refFlat_path = '/%s/D/Sequences/hg19/refseq/refFlat_hg19.txt' % (homedir,) //
 refFlat_path = '%s/D/refFlat.txt' %(homedir) #added 
-###############################################################
-###############################################################
-# ================splice AI=================== #
-def spliceAI(locusStr): # locusStr: 1-base, 1-base
-
-    result = []
-    
-    for r in spliceAI_raw(locusStr):
-        tokL = r[:-1].split('\t')
-
-        chrN = tokL[0]
-        pos = int(tokL[1])
-
-        ref = tokL[3] 
-        alt = tokL[4]
-
-        tL = tokL[-1].split('|')
-
-        geneName = tL[1]
-
-        score  = dict(zip(('AG','AL','DG','DL'),map(float,tL[2:6]) )  )
-        relPos = dict(zip(('AG','AL','DG','DL'),map(int,tL[6:])    )  )
-
-        result.append({'chrN':chrN,'pos':pos,'ref':ref,'alt':alt,'geneName':geneName,'score':score,'relPos':relPos})
-    return result
-def spliceAI_raw(locusStr): # locusStr: 1-base, 1-base
-
-    if locusStr[:3] == 'chr':
-        locusStr = locusStr[3:]
-    #posSta,posEnd = map(int,locusStr.split(':')[-1].split('-'))
-
-    return tbi_bed_query('%s/BigFiles/SpliceAI/spliceai_scores.raw.snv.hg38.vcf.gz' % homedir, locusStr) + tbi_bed_query('%s/BigFiles/SpliceAI/spliceai_scores.raw.indel.hg38.vcf.gz' % homedir, locusStr)
-
-
-def tbi_bed_query(bedFilePath,locusStr):
-    if os.path.isfile(bedFilePath) == False:
-        print("this is not file | There is not file")
-        raise FileNotFoundError
-    # print('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr))    
-    f = os.popen('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr),'r')
-    return f.readlines()
-
-def primateAI_raw(locusStr): # locusStr: 1-base, 1-base
-
-    if locusStr[:3] != 'chr':
-        locusStr = 'chr'+locusStr
-
-    chrom = locusStr.split(':')[0]
-    posSta,posEnd = map(int,locusStr.split(':')[-1].split('-'))
-
-    locusStr_new = '%s:%s-%s' % (chrom,posSta-1,posSta+1)
-
-    return tbi_bed_query('%s/BigFiles/primateAI/primateAI_hg38.bed.gz' % homedir, locusStr_new)
-
-###############################################################
-###############################################################
-# =================hexamer_track==================== #
-def hexamer_track(seq,hexH4=None,figPath='default'):
-
-    if not hexH4:
-        hexH4 = load_hexamer4()
- 
-    from matplotlib.font_manager import FontProperties
-    import pylab
-
-    #pylab.rc('mathtext', default='regular')
-
-    font = FontProperties()
-    font.set_family('monospace')
-    font.set_size(17.*84./50*7/15)       
-
-    fig = pylab.figure(figsize=(7*len(seq)/50.,7))
-
-    regionType = ['5p_exon','5p_intron','3p_exon','3p_intron']
-
-    scoreH = {}
-
-    for r in range(4):
-
-        ax = fig.add_subplot('41%s' % (r+1,))
-        ax.axis([0,len(seq),0,6])
-        ax.set_ylabel(regionType[r])
-        
-        if r==0:
-            ax.set_title('Hexamer score')
-        
-        scoreH[regionType[r]] = {}
-
-        for i in range(len(seq)-5):
-            s = seq[i:i+6]
-            c = calColor(hexH4[regionType[r]][s])
-            scoreH[regionType[r]][s] = hexH4[regionType[r]][s]
-            ax.text(i,i%6+0.2,s,color=c,fontproperties=font)
-        
-    if figPath == 'default':
-        num = rd.randrange(0,500)   # it's for rainy day ,if many people access file,..
-        sp=os.path.sep
-        savedPath ='%shexamer_track'% (os.path.dirname(__file__)+sp+'output'+sp)+str(num)+'.png' 
-        print("saved path :",savedPath)
-        
-        fig.savefig(savedPath)
-        # fig.savefig('%s/hexamer_track.pdf' % homedir) //original
-        scoreH['path']=savedPath 
-    elif figPath:
-        fig.savefig(figPath)
-        scoreH['path']=figPath
-    return scoreH
-
-def load_hexamer4():
-
-    result = {}
-
-    for h in ['5p_exon','3p_exon','5p_intron','3p_intron']:
-        result[h] = load_hexamer(h)
-    
-    return result
-
-def load_hexamer(segType):
-
-    if segType == '5p_exon':
-        s = ('A5','R1')
-    elif segType == '5p_intron':
-        s = ('A5','R2')
-    elif segType == '3p_intron':
-        s = ('A3','R1')
-    elif segType == '3p_exon':
-        s = ('A3','R2')
-    else:
-        print('segType unknown: %s\n' % segType)
-        raise Exception
-
-    import dnatools
-    sep = os.path.sep #ypil added
-    return pd.Series(index=dnatools.make_mer_list(6),data=np.load('%sPackages/cell-2015/results/N4_Motif_Effect_Sizes/%sSS/mean_effects_sdpos_%s.npy' % (os.path.dirname(__file__)+sep+'data'+sep,s[0],s[1])))
-###############################################################
-###############################################################
 def loadFasta(fastaPath='%s/D/Sequences/gencode_24/gencode.v24lift37.pc_transcripts.fa.gz' % homedir, blacklist=['NR_106988']):
 
     h = collections.defaultdict(list)    
@@ -1050,7 +926,56 @@ def spliceAI_run(chrom,pos,ref,alt): # hg38, pos-1; indel exam: T to TA
 
     return os.popen("cat %s | spliceai -R %s/D/Sequences/hg38/hg38.fa -A grch38" % (f.name,homedir)).readlines()
 
+def spliceAI_raw(locusStr): # locusStr: 1-base, 1-base
 
+    if locusStr[:3] == 'chr':
+        locusStr = locusStr[3:]
+    #posSta,posEnd = map(int,locusStr.split(':')[-1].split('-'))
+
+    return tbi_bed_query('%s/BigFiles/SpliceAI/spliceai_scores.raw.snv.hg38.vcf.gz' % homedir, locusStr) + tbi_bed_query('%s/BigFiles/SpliceAI/spliceai_scores.raw.indel.hg38.vcf.gz' % homedir, locusStr)
+
+def primateAI_raw(locusStr): # locusStr: 1-base, 1-base
+
+    if locusStr[:3] != 'chr':
+        locusStr = 'chr'+locusStr
+
+    chrom = locusStr.split(':')[0]
+    posSta,posEnd = map(int,locusStr.split(':')[-1].split('-'))
+
+    locusStr_new = '%s:%s-%s' % (chrom,posSta-1,posSta+1)
+
+    return tbi_bed_query('%s/BigFiles/primateAI/primateAI_hg38.bed.gz' % homedir, locusStr_new)
+
+def spliceAI(locusStr): # locusStr: 1-base, 1-base
+
+    result = []
+    
+    for r in spliceAI_raw(locusStr):
+        tokL = r[:-1].split('\t')
+
+        chrN = tokL[0]
+        pos = int(tokL[1])
+
+        ref = tokL[3] 
+        alt = tokL[4]
+
+        tL = tokL[-1].split('|')
+
+        geneName = tL[1]
+
+        score  = dict(zip(('AG','AL','DG','DL'),map(float,tL[2:6]) )  )
+        relPos = dict(zip(('AG','AL','DG','DL'),map(int,tL[6:])    )  )
+
+        result.append({'chrN':chrN,'pos':pos,'ref':ref,'alt':alt,'geneName':geneName,'score':score,'relPos':relPos})
+    return result
+
+def tbi_bed_query(bedFilePath,locusStr):
+    if os.path.isfile(bedFilePath) == False:
+        print("this is not file | There is not file")
+        raise FileNotFoundError
+    print('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr))    
+    f = os.popen('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr),'r')
+    return f.readlines()
 
 def variant_bi(chrNum,chrPos,strand,ref,alt,assembly='hg38',hexH4=False): # ref, alt: transcript base
 
@@ -1081,7 +1006,32 @@ def labranchor_query(locusStr):
 
     return tbi_bed_query('~/D/DB/labranchor/lstm.gencode_v19.hg38.top.sorted.bed.gz', locusStr)
 
+def load_hexamer(segType):
 
+    if segType == '5p_exon':
+        s = ('A5','R1')
+    elif segType == '5p_intron':
+        s = ('A5','R2')
+    elif segType == '3p_intron':
+        s = ('A3','R1')
+    elif segType == '3p_exon':
+        s = ('A3','R2')
+    else:
+        print('segType unknown: %s\n' % segType)
+        raise Exception
+
+    import dnatools
+    sep = os.path.sep #ypil added
+    return pd.Series(index=dnatools.make_mer_list(6),data=np.load('%sPackages/cell-2015/results/N4_Motif_Effect_Sizes/%sSS/mean_effects_sdpos_%s.npy' % (os.path.dirname(__file__)+sep+'data'+sep,s[0],s[1])))
+
+def load_hexamer4():
+
+    result = {}
+
+    for h in ['5p_exon','3p_exon','5p_intron','3p_intron']:
+        result[h] = load_hexamer(h)
+    
+    return result
 
 def hexamer(seq,hexH): 
 
@@ -1163,7 +1113,57 @@ def calColor(score):
     else:
         return (1,1,1)
 
+import random as rd
+def hexamer_track(seq,hexH4=None,figPath='default'):
 
+    if not hexH4:
+        hexH4 = load_hexamer4()
+ 
+    from matplotlib.font_manager import FontProperties
+    import pylab
+
+#    pylab.rc('mathtext', default='regular')
+
+    font = FontProperties()
+    font.set_family('monospace')
+    font.set_size(17.*84./50*7/15)       
+
+    fig = pylab.figure(figsize=(7*len(seq)/50.,7))
+
+    regionType = ['5p_exon','5p_intron','3p_exon','3p_intron']
+
+    scoreH = {}
+
+    for r in range(4):
+
+        ax = fig.add_subplot('41%s' % (r+1,))
+        ax.axis([0,len(seq),0,6])
+        ax.set_ylabel(regionType[r])
+        
+        if r==0:
+            ax.set_title('Hexamer score')
+        
+        scoreH[regionType[r]] = {}
+
+        for i in range(len(seq)-5):
+            s = seq[i:i+6]
+            c = calColor(hexH4[regionType[r]][s])
+            scoreH[regionType[r]][s] = hexH4[regionType[r]][s]
+            ax.text(i,i%6+0.2,s,color=c,fontproperties=font)
+        
+    if figPath == 'default':
+        num = rd.randrange(0,500)   # it's for rainy day ,if many people access file,..
+        sp=os.path.sep
+        savedPath ='%shexamer_track'% (os.path.dirname(__file__)+sp+'output'+sp)+str(num)+'.png' 
+        print("saved path :",savedPath)
+        
+        fig.savefig(savedPath)
+        # fig.savefig('%s/hexamer_track.pdf' % homedir) //original
+        scoreH['path']=savedPath 
+    elif figPath:
+        fig.savefig(figPath)
+        scoreH['path']=figPath
+    return scoreH
 
 class InitiationFailureException(Exception): pass
 

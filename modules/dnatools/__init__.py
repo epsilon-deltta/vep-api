@@ -69,9 +69,3 @@ def find_seq_diff_pos(wt_seq,mut_seq):
     for i in range(len(wt_seq)):
         muts[i] = (wt_seq[i]!=mut_seq[i])
     return find(muts)[0]
-
-def get_snp_pos(ref,mut):
-    for p in range(len(ref)):
-        if(ref[p]!=mut[p]):
-            break
-    return p
