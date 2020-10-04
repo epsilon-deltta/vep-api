@@ -54,7 +54,9 @@ def tbi_bed_query(bedFilePath,locusStr):
         raise FileNotFoundError
     # print('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr))    
     f = os.popen('%s/tools/tabix-0.2.6/tabix %s %s' % (homedir,bedFilePath,locusStr),'r')
-    return f.readlines()
+    result = f.readlines()
+    # print("result" ,result)
+    return result
 
 def primateAI_raw(locusStr): # locusStr: 1-base, 1-base
 
