@@ -2,11 +2,12 @@ from django.urls import path,include
 
 from . import views
 # app_name = 'dna_api'
+#/seq/~
 urlpatterns = [
     path('', views.seq, name='seq'),
     path('test', views.index, name='index'),
     path('client', views.test_client_json, name='index'),
-    path('splice',views.spliceAi,name="spliceAi"),
+    path('spliceai',views.spliceAi,name="spliceAi"),
     path('test0',views.test,name="test0"),
     # path('<int:question_id>/', views.detail, name='detail'),
     # # ex: /polls/5/results/

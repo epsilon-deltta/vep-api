@@ -34,5 +34,39 @@ def get_position_To_seq(seq="chr14,31549779,31549850,+"):
     return seq
 # =========================================================
 def get_splice_ai(seq='11:108236168-108236168'):
+    print("seq str is ",seq)
+    seq.rstrip()
+    filter_sign = None 
+
+    if ' ' in seq:
+        filter_sign = seq.split(' ')[1]
+        seq         = seq.split(' ')[0]
+    if '-' not in seq:
+        seq = onePos_To_twoPos(seq)
     context = jk.spliceAI(seq)
+
+    if filter_sign is not None :
+        context = get_matched_seq(context,filter_sign) 
     return context
+def onePos_To_twoPos(seq='11:108236168'):
+    second_pos = seq.split(':')[1]
+    seq        = seq + '-' + second_pos
+    return seq
+def get_matched_seq(context,filter_sign):
+    l_sign   = filter_sign[0].upper()
+    alt_sign = filter_sign[1]
+    r_sign   = filter_sign[2].upper()
+    # ref > alt
+    # alt < ref
+    new_context = []
+    for chr_info in context:
+
+        if '<'   in alt_sign :
+            if l_sign == chr_info['alt'] and r_sign == chr_info['ref']:
+                new_context.append(chr_info)
+        elif '>' in alt_sign:
+            if l_sign == chr_info['ref'] and r_sign == chr_info['alt']:
+                new_context.append(chr_info)
+        else:
+            raise Exception
+    return new_context 

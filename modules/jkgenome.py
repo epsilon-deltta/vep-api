@@ -1,5 +1,3 @@
-# mygenome
-
 import sys, os, copy, re, gzip, collections
 import pandas as pd
 import numpy as np

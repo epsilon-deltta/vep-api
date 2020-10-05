@@ -71,7 +71,7 @@ def spliceAi(request):
     context ={}
     if request.body is not None:
         data = json.loads(request.body)
-        context  = sp.get_hexamer_track_info(data['seq'])
+        context  = sp.get_splice_ai(data['seq'])
     else:
         print("It's empty")
     response = HttpResponse(simplejson.dumps(context), content_type="application/json")
