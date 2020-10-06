@@ -2,8 +2,10 @@ import jkgenome as jk
 import os
 import time
 print("=====start")
-result = jk.spliceAI('11:108241292-108241292') #output 01
-print(result)
+# result = jk.spliceAI('11:108241292-108241292') #output 01
+result = jk.spliceAI('11:108236168-108236168') #output 01
+
+# print(result)
 
 for x in result:
     print(x)

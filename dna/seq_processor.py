@@ -1,6 +1,7 @@
     
 import base64
 import os
+
 import jkgenome as jk
 
 def get_mes3(seq):
@@ -38,9 +39,11 @@ def get_splice_ai(seq='11:108236168-108236168'):
     seq.rstrip()
     filter_sign = None 
 
+
     if ' ' in seq:
         filter_sign = seq.split(' ')[1]
         seq         = seq.split(' ')[0]
+
     if '-' not in seq:
         seq = onePos_To_twoPos(seq)
     context = jk.spliceAI(seq)
@@ -52,10 +55,14 @@ def onePos_To_twoPos(seq='11:108236168'):
     second_pos = seq.split(':')[1]
     seq        = seq + '-' + second_pos
     return seq
+import re
 def get_matched_seq(context,filter_sign):
-    l_sign   = filter_sign[0].upper()
-    alt_sign = filter_sign[1]
-    r_sign   = filter_sign[2].upper()
+    signs = re.split(r"[/>/<]",filter_sign)
+
+    l_sign   = signs[0].upper()
+    alt_sign = filter_sign[len(l_sign)]
+    r_sign   = signs[1].upper()
+    print(l_sign,alt_sign,r_sign)
     # ref > alt
     # alt < ref
     new_context = []
