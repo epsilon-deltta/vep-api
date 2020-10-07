@@ -36,7 +36,7 @@ def get_position_To_seq(seq="chr14,31549779,31549850,+"):
 # =========================================================
 def get_splice_ai(seq='11:108236168-108236168'):
     print("seq str is ",seq)
-    seq.rstrip()
+    seq = seq.rstrip()
     filter_sign = None 
 
 
@@ -66,14 +66,18 @@ def get_matched_seq(context,filter_sign):
     # ref > alt
     # alt < ref
     new_context = []
+    print("alt_sign",alt_sign)
     for chr_info in context:
 
         if '<'   in alt_sign :
             if l_sign == chr_info['alt'] and r_sign == chr_info['ref']:
                 new_context.append(chr_info)
         elif '>' in alt_sign:
+            print("elif")
+            print("r  :",r_sign,"   l:",l_sign)
+            print("ref :",chr_info['ref'])
             if l_sign == chr_info['ref'] and r_sign == chr_info['alt']:
+                print("if")
                 new_context.append(chr_info)
-        else:
-            raise Exception
+
     return new_context 
