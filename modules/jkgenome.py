@@ -163,18 +163,14 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
         hexH4 = load_hexamer4()
     
     regions = locus("%s:%s-%s%s"%('chr'+str(chrNum), chrPos-1, chrPos, '+')).regionType() # UCSC genome 0-based
-    print("region==========")
-    for x in regions:
-        print(x)
-    print("region==========")
-    
+    print("regions ",regions)
     #(t['transName'],t['transID'],flag, sense, marg)
     r_ls = []
     for region in regions:
         s = '+' if region[3] =='sense' else '-'
         if region[2]!='lnc' and (region[0],s) not in r_ls:
             r_ls.append((region[0],s))
-    
+            
     r_ls = list(set(r_ls))
     
     if not len(r_ls): # only 'lnc' regions <= how to deal with?
@@ -186,7 +182,6 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             print()
 
         transName, strand = r
-    
         print(transName, strand)
         print()
         
@@ -194,7 +189,7 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             ref_, alt_ = jkbio.rc(ref), jkbio.rc(alt)
         else:
             ref_, alt_ = ref, alt
-        print(i,".  ref , alt ",ref_ ,alt_ )
+        
         print('Hexamer')
         print(hexamer4_byCoord_general(chrNum,chrPos,chrPos,strand,ref_,alt_,hexH4,assembly))
         print()
@@ -220,6 +215,7 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             print('MES acceptor')
             print('ref', list(map(float,mes_result[1][0])))
             print('alt', list(map(float,mes_result[1][1])))
+            
 # ==================maxentscan============================
 def mes5(seq): # seq example: CAGgtaagt
 
@@ -601,6 +597,7 @@ def processBlatLine(line):
 
 #     return h
 
+
 def margin(innerRange,outerRange): # 0-base
 
     i_s,i_e = innerRange
@@ -610,9 +607,7 @@ def margin(innerRange,outerRange): # 0-base
 def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
 
     locT = (loc.chrom,loc.chrSta+1,loc.chrEnd)
-    print("locT :",locT)
     regions = []
-    print("h[locT[0]] :",len(h[locT[0]] ) )
     for t in h[locT[0]]:
 
         if t['txnEnd'] < locT[1]:
@@ -669,16 +664,10 @@ def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
 
 #                if sense == 'antisense':
 #                    marg = tuple(marg[::-1])
-        print("=============================================")
 
         if t['cdsList'] == []:
             regions.append((t['transName'],t['transID'],'lnc', sense, -1))
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    print(regions)
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+
     return list(set(regions))
 
 
@@ -1291,7 +1280,7 @@ def hexamer4_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,hexH4,assembly)
     ref = '' if ref=='-' else ref
     alt = '' if alt=='-' else alt
 
-    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-5,chrEnd+5,strand))
+    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-6,chrEnd+5,strand))
 
     s_before = l.twoBitFrag(assembly)
 
