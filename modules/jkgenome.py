@@ -419,7 +419,6 @@ def loadAppris_refseq(path = '%s/D/Sequences/APPRIS_RefSeq107_20170423_src201704
 
 # gencode basic: D/Sequences/gencode_24/wgEncodeGencodeBasicV24lift37.txt.gz
 # gencode comp: D/Sequences/gencode_24/wgEncodeGencodeCompV24lift37.txt.gz
-
 def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
     h = collections.defaultdict(list)
@@ -429,10 +428,10 @@ def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
         f = open(blatOutputPath)
 
     for line in f:
-
+        
         if line[0] == '#':
             continue
-    
+
         r = processBlatLine(line)
 
         if r['transID'] in blacklist:
@@ -440,11 +439,36 @@ def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
         h[r[by]].append(r)
 
-    from operator import itemgetter, attrgetter
+    from operator import attrgetter, itemgetter
 
-    for k,vL in h.items():
+    for k,vL in list(h.items()):
         h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
     return h
+# def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
+
+#     h = collections.defaultdict(list)
+#     if blatOutputPath.endswith('.gz'):
+#         f = gzip.open(blatOutputPath)
+#     else:
+#         f = open(blatOutputPath)
+
+#     for line in f:
+
+#         if line[0] == '#':
+#             continue
+    
+#         r = processBlatLine(line)
+
+#         if r['transID'] in blacklist:
+#             continue
+
+#         h[r[by]].append(r)
+
+#     from operator import itemgetter, attrgetter
+
+#     for k,vL in list(h.items()):
+#         h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
+#     return h
 
 def loadBlatOutputByGene(blatOutputPath):
 
@@ -458,7 +482,6 @@ def loadBlatOutputByChr(blatOutputPath=refFlat_path):
 def loadBlatOutputByID(blatOutputPath):
 
     return loadBlatOutput(blatOutputPath,'transID')
-
 def processBlatLine(line):
 
     tokL = line.rstrip().split('\t')
@@ -496,9 +519,6 @@ def processBlatLine(line):
         frontL = [x for x in frontL if x[0] < x[1]]
         h['cdsList'] = [x for x in h['cdsList'] if x[0] < x[1]]
         backL = [x for x in backL if x[0] < x[1]]
-        # frontL = filter(lambda x: x[0] < x[1],frontL)
-        # h['cdsList'] = filter(lambda x: x[0] < x[1], h['cdsList'])
-        # backL = filter(lambda x: x[0] < x[1], backL)
 
     if h['strand'] == '+':
             h['utr5'] = frontL
@@ -519,21 +539,82 @@ def processBlatLine(line):
         h['intron'].append((h['exnList'][i][1],h['exnList'][i+1][0]))
 
     return h
+# old version
+# def processBlatLine(line):
+
+#     tokL = line.rstrip().split('\t')
+
+#     h = {}
+
+#     h['transName'] = tokL[0]
+#     h['transID'] = tokL[1]
+#     h['chrom'] = tokL[2]
+#     h['chrNum'] = tokL[2][3:]
+#     h['strand'] = tokL[3]
+#     h['txnSta'] = int(tokL[4])
+#     h['txnEnd'] = int(tokL[5])
+#     h['txnLen'] = h['txnEnd'] - h['txnSta']
+#     h['cdsSta'] = int(tokL[6])
+#     h['cdsEnd'] = int(tokL[7])
+#     h['exnList'] = list(map(lambda x,y: (int(x),int(y)), tokL[9].split(',')[:-1], tokL[10].split(',')[:-1]))
+#     h['exnLenList'] = [e-s for (s,e) in h['exnList']]
+#     h['exnLen'] = sum(h['exnLenList'])
+
+#     if len(tokL) > 12:
+#         h['geneName'] = tokL[12]
+
+#     h['cdsList'] = []
+#     frontL, backL = [],[]
+
+#     if h['cdsSta'] != h['cdsEnd']:
+
+#         for (s,e) in h['exnList']:
+
+#             frontL.append((min(s,h['cdsSta']),min(e,h['cdsSta'])))
+#             h['cdsList'].append((max(s,h['cdsSta']),min(e,h['cdsEnd'])))
+#             backL.append((max(s, h['cdsEnd']), max(e, h['cdsEnd'])))
+
+#         frontL = [x for x in frontL if x[0] < x[1]]
+#         h['cdsList'] = [x for x in h['cdsList'] if x[0] < x[1]]
+#         backL = [x for x in backL if x[0] < x[1]]
+#         # frontL = filter(lambda x: x[0] < x[1],frontL)
+#         # h['cdsList'] = filter(lambda x: x[0] < x[1], h['cdsList'])
+#         # backL = filter(lambda x: x[0] < x[1], backL)
+
+#     if h['strand'] == '+':
+#             h['utr5'] = frontL
+#             h['utr3'] = backL
+#     elif h['strand'] == '-':
+#             h['utr5'] = backL
+#             h['utr3'] = frontL
+#     else:
+#             raise Exception
+
+#     h['utr5Len'] = sum([e-s for (s,e) in h['utr5']])
+#     h['utr3Len'] = sum([e-s for (s,e) in h['utr3']])
+#     h['cdsLen'] = sum([e-s for (s,e) in h['cdsList']])
+
+#     h['intron'] = []
+
+#     for i in range(len(h['exnList'])-1):
+#         h['intron'].append((h['exnList'][i][1],h['exnList'][i+1][0]))
+
+#     return h
 
 def margin(innerRange,outerRange): # 0-base
 
     i_s,i_e = innerRange
     o_s,o_e = outerRange
 
-    return i_s-o_s, o_e-i_e
-
+    return i_s-o_s, o_e-i_e+1
 def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
 
     locT = (loc.chrom,loc.chrSta+1,loc.chrEnd)
-
+    print("locT :",locT)
     regions = []
     print("h[locT[0]] :",len(h[locT[0]] ) )
     for t in h[locT[0]]:
+
         if t['txnEnd'] < locT[1]:
             continue
 
@@ -552,7 +633,7 @@ def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
             for s,e in t[regionName]:
 
                 if overlap(('_',locT[1]-1,locT[2]),('_',s,e)) == 0:
-                   continue
+                    continue
 
                 if regionName == 'cdsList':
 
@@ -588,17 +669,16 @@ def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
 
 #                if sense == 'antisense':
 #                    marg = tuple(marg[::-1])
-#                regions.append((t['transName'],t['transID'],flag, sense, marg))
-        print("====================================")
-        for x in t:
-            print(x,"  :" ,t[x])
+        print("=============================================")
+
         if t['cdsList'] == []:
-            print("+++++++++++++++++++++")
             regions.append((t['transName'],t['transID'],'lnc', sense, -1))
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     print(regions)
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     return list(set(regions))
 
 
