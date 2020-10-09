@@ -150,6 +150,220 @@ def load_hexamer(segType):
     return pd.Series(index=dnatools.make_mer_list(6),data=np.load('%sPackages/cell-2015/results/N4_Motif_Effect_Sizes/%sSS/mean_effects_sdpos_%s.npy' % (os.path.dirname(__file__)+sep+'data'+sep,s[0],s[1])))
 ###############################################################
 ###############################################################
+# input: 12,51391349,'T','GG'
+def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
+    # ref>alt conversion: + strand oriented
+    
+    # ref alt: unifying nomenclature
+    uni_nomen = lambda x: x.replace('-','').replace('.','').replace('*','')
+    ref = uni_nomen(ref)
+    alt = uni_nomen(alt)
+    
+    if not hexH4:
+        hexH4 = load_hexamer4()
+    
+    regions = locus("%s:%s-%s%s"%('chr'+str(chrNum), chrPos-1, chrPos, '+')).regionType() # UCSC genome 0-based
+    print("region==========")
+    for x in regions:
+        print(x)
+    print("region==========")
+    
+    #(t['transName'],t['transID'],flag, sense, marg)
+    r_ls = []
+    for region in regions:
+        s = '+' if region[3] =='sense' else '-'
+        if region[2]!='lnc' and (region[0],s) not in r_ls:
+            r_ls.append((region[0],s))
+    
+    r_ls = list(set(r_ls))
+    
+    if not len(r_ls): # only 'lnc' regions <= how to deal with?
+        print('Given region has long non coding (lnc) annotations only')
+        pass
+    
+    for i,r in enumerate(r_ls):
+        if i>0:
+            print()
+
+        transName, strand = r
+    
+        print(transName, strand)
+        print()
+        
+        if strand == '-':
+            ref_, alt_ = jkbio.rc(ref), jkbio.rc(alt)
+        else:
+            ref_, alt_ = ref, alt
+        print(i,".  ref , alt ",ref_ ,alt_ )
+        print('Hexamer')
+        print(hexamer4_byCoord_general(chrNum,chrPos,chrPos,strand,ref_,alt_,hexH4,assembly))
+        print()
+
+        if len(ref)==len(alt):
+            mes_result = mes_byCoord(chrNum,chrPos,strand,ref_,alt_,assembly,verbose=True)
+
+            print('MES donor')
+            print('delta', list(map(float,list(mes_result[0]))))
+            print('final', list(map(float,mes_result[2])))
+
+            print('MES acceptor')
+            print('delta', list(map(float,list(mes_result[1]))))
+            print('final', list(map(float,mes_result[3])))
+            
+        else:
+            mes_result = mes_byCoord_general(chrNum,chrPos,chrPos+len(ref_)-1,strand,ref_,alt_,assembly)
+            
+            print('MES donor')
+            print('ref', list(map(float,mes_result[0][0])))
+            print('alt', list(map(float,mes_result[0][1])))
+            
+            print('MES acceptor')
+            print('ref', list(map(float,mes_result[1][0])))
+            print('alt', list(map(float,mes_result[1][1])))
+# ==================maxentscan============================
+def mes5(seq): # seq example: CAGgtaagt
+
+    if len(seq) != 9:
+        raise Exception
+    print(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())    
+    return float(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())
+
+def mes3(seq): # seq example: ttcca aacga acttt tgtag GGA (23)
+
+    if len(seq) != 23:
+        raise Exception
+
+    return float(os.popen('cd %s/tools/maxentscan; perl score3_mod.pl %s' % (homedir,seq)).readline())
+
+def mes5_scan(seq):
+
+    seq = seq.upper()
+
+    resultL = [None]*3
+
+    for i in range(len(seq)-8):
+        if seq[i+3:i+5] == 'GT':
+            resultL.append(mes5(seq[i:i+9]))
+        else:
+            resultL.append(None)
+
+    resultL += [None]*5
+
+    resultL = [(0 if x==None or x<0 else x) for x in resultL]
+
+    return resultL
+
+def mes3_scan(seq):
+
+    seq = seq.upper()
+
+    resultL = [None]*19
+
+    for i in range(len(seq)-22):
+        if seq[i+18:i+20] == 'AG':
+            resultL.append(mes3(seq[i:i+23]))
+        else:
+            resultL.append(None)
+
+    resultL += [None]*3
+
+    resultL = [(0 if x==None or x<0 else x) for x in resultL]
+
+    return np.array(resultL)
+
+def mes_byCoord(chrNum,pos,strand,ref,alt,assembly,verbose=False): # assuming single nt to single nt change, base-1 inclusive
+
+    l = locus('chr%s:%s-%s%s' % (chrNum,pos-23,pos+22,strand))
+
+    s_before = l.twoBitFrag(assembly)
+
+    if s_before[22:22+len(ref)] != ref:
+        print(s_before, ref, alt)
+        raise Exception
+
+    s_after = s_before[:22] + alt + s_before[-22:]
+
+    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
+    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after),)
+
+    mes5_dt = np.array(mes5_tup[1])-np.array(mes5_tup[0])
+    mes3_dt = np.array(mes3_tup[1])-np.array(mes3_tup[0])
+
+#    if verbose==True:
+#        print(mes5_tup,mes3_tup)
+
+    if verbose:
+        return mes5_dt,mes3_dt,mes5_tup[1],mes3_tup[1]
+    else:
+        return mes5_dt,mes3_dt
+
+def mes_byCoord_subs(chrNum,chrSta,chrEnd,strand,ref,alt,assembly,verbose=False): # assuming substitution, base-1 inclusive
+
+    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-23,chrEnd+22,strand))
+
+    s_before = l.twoBitFrag(assembly)
+
+    if s_before[22:22+len(ref)] != ref:
+        print(s_before, ref, alt)
+        raise Exception
+
+    s_after = s_before[:22] + alt + s_before[-22:]
+
+    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
+    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after),)
+
+    mes5_dt = np.array(mes5_tup[1])-np.array(mes5_tup[0])
+    mes3_dt = np.array(mes3_tup[1])-np.array(mes3_tup[0])
+
+#    if verbose==True:
+#        print(mes5_tup,mes3_tup)
+
+    if verbose:
+        return mes5_dt,mes3_dt,mes5_tup,mes3_tup
+    else:
+        return mes5_dt,mes3_dt
+
+def mes_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,assembly): # base-0 exclusive
+
+    ref = '' if ref=='-' else ref
+    alt = '' if alt=='-' else alt
+
+    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-22,chrEnd+22,strand))
+
+    s_before = l.twoBitFrag(assembly)
+
+    if s_before[22:22+len(ref)] != ref:
+        print(s_before, chrNum, chrSta, chrEnd, ref, alt)
+        raise Exception
+
+    s_after = s_before[:22] + alt + s_before[-22:]
+
+    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
+    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after))
+
+    return mes5_tup,mes3_tup
+
+def mes5_byCoord(chrNum,pos,strand,assembly): # pos is 1-base sta or end of intron
+
+    if strand == '+':
+        l = locus('chr%s:%s-%s%s' % (chrNum,pos-4,pos+5,'+'))
+    else:
+        l = locus('chr%s:%s-%s%s' % (chrNum,pos-6,pos+3,'-'))
+
+    s = l.twoBitFrag(assembly)
+    return s,mes5(s)
+
+def mes3_byCoord(chrNum,pos,strand,assembly): # pos is 1-base sta or end of intron
+
+    if strand == '+':
+        l = locus('chr%s:%s-%s%s' % (chrNum,pos-20,pos+3,'+'))
+    else:
+        l = locus('chr%s:%s-%s%s' % (chrNum,pos-4,pos+19,'-'))
+
+    s = l.twoBitFrag(assembly)
+    return s,mes3(s)
+# ======================
+# ======================
 def loadFasta(fastaPath='%s/D/Sequences/gencode_24/gencode.v24lift37.pc_transcripts.fa.gz' % homedir, blacklist=['NR_106988']):
 
     h = collections.defaultdict(list)    
@@ -206,10 +420,9 @@ def loadAppris_refseq(path = '%s/D/Sequences/APPRIS_RefSeq107_20170423_src201704
 # gencode basic: D/Sequences/gencode_24/wgEncodeGencodeBasicV24lift37.txt.gz
 # gencode comp: D/Sequences/gencode_24/wgEncodeGencodeCompV24lift37.txt.gz
 
-def loadBlatOutput(blatOutputPath='/home/yelee/wgEncodeGencodeCompV24lift37.txt.gz',by='transID',blacklist=['NR_106988']):
+def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
     h = collections.defaultdict(list)
-
     if blatOutputPath.endswith('.gz'):
         f = gzip.open(blatOutputPath)
     else:
@@ -231,13 +444,13 @@ def loadBlatOutput(blatOutputPath='/home/yelee/wgEncodeGencodeCompV24lift37.txt.
 
     for k,vL in h.items():
         h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
-
     return h
 
 def loadBlatOutputByGene(blatOutputPath):
 
     return loadBlatOutput(blatOutputPath, 'geneName')
 
+# ===========
 def loadBlatOutputByChr(blatOutputPath=refFlat_path):
 
     return loadBlatOutput(blatOutputPath, 'chrom')
@@ -280,9 +493,12 @@ def processBlatLine(line):
             h['cdsList'].append((max(s,h['cdsSta']),min(e,h['cdsEnd'])))
             backL.append((max(s, h['cdsEnd']), max(e, h['cdsEnd'])))
 
-        frontL = filter(lambda x: x[0] < x[1],frontL)
-        h['cdsList'] = filter(lambda x: x[0] < x[1], h['cdsList'])
-        backL = filter(lambda x: x[0] < x[1], backL)
+        frontL = [x for x in frontL if x[0] < x[1]]
+        h['cdsList'] = [x for x in h['cdsList'] if x[0] < x[1]]
+        backL = [x for x in backL if x[0] < x[1]]
+        # frontL = filter(lambda x: x[0] < x[1],frontL)
+        # h['cdsList'] = filter(lambda x: x[0] < x[1], h['cdsList'])
+        # backL = filter(lambda x: x[0] < x[1], backL)
 
     if h['strand'] == '+':
             h['utr5'] = frontL
@@ -316,9 +532,8 @@ def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
     locT = (loc.chrom,loc.chrSta+1,loc.chrEnd)
 
     regions = []
-
+    print("h[locT[0]] :",len(h[locT[0]] ) )
     for t in h[locT[0]]:
-
         if t['txnEnd'] < locT[1]:
             continue
 
@@ -365,14 +580,25 @@ def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
 
                 marg = margin((locT[1]-1,locT[2]),(s,e))
 
+                if (marg[0] or marg[1]) < 0:
+                    continue
+
+                else:
+                    regions.append((t['transName'],t['transID'],flag, sense, marg))
+
 #                if sense == 'antisense':
 #                    marg = tuple(marg[::-1])
-
-                regions.append((t['transName'],t['transID'],flag, sense, marg))
-
+#                regions.append((t['transName'],t['transID'],flag, sense, marg))
+        print("====================================")
+        for x in t:
+            print(x,"  :" ,t[x])
         if t['cdsList'] == []:
+            print("+++++++++++++++++++++")
             regions.append((t['transName'],t['transID'],'lnc', sense, -1))
-
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print(regions)
     return list(set(regions))
 
 
@@ -869,147 +1095,6 @@ def mergeLoci(locusL,gap=10):
 
     return locusMergedL
 
-def mes5(seq): # seq example: CAGgtaagt
-
-    if len(seq) != 9:
-        raise Exception
-
-    return float(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())
-
-def mes3(seq): # seq example: ttcca aacga acttt tgtag GGA (23)
-
-    if len(seq) != 23:
-        raise Exception
-
-    return float(os.popen('cd %s/tools/maxentscan; perl score3_mod.pl %s' % (homedir,seq)).readline())
-
-def mes5_scan(seq):
-
-    seq = seq.upper()
-
-    resultL = [None]*3
-
-    for i in range(len(seq)-8):
-        if seq[i+3:i+5] == 'GT':
-            resultL.append(mes5(seq[i:i+9]))
-        else:
-            resultL.append(None)
-
-    resultL += [None]*5
-
-    resultL = [(0 if x==None or x<0 else x) for x in resultL]
-
-    return resultL
-
-def mes3_scan(seq):
-
-    seq = seq.upper()
-
-    resultL = [None]*19
-
-    for i in range(len(seq)-22):
-        if seq[i+18:i+20] == 'AG':
-            resultL.append(mes3(seq[i:i+23]))
-        else:
-            resultL.append(None)
-
-    resultL += [None]*3
-
-    resultL = [(0 if x==None or x<0 else x) for x in resultL]
-
-    return np.array(resultL)
-
-def mes_byCoord(chrNum,pos,strand,ref,alt,assembly,verbose=False): # assuming single nt to single nt change, base-1 inclusive
-
-    l = locus('chr%s:%s-%s%s' % (chrNum,pos-23,pos+22,strand))
-
-    s_before = l.twoBitFrag(assembly)
-
-    if s_before[22:22+len(ref)] != ref:
-        print(s_before, ref, alt)
-        raise Exception
-
-    s_after = s_before[:22] + alt + s_before[-22:]
-
-    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
-    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after),)
-
-    mes5_dt = np.array(mes5_tup[1])-np.array(mes5_tup[0])
-    mes3_dt = np.array(mes3_tup[1])-np.array(mes3_tup[0])
-
-#    if verbose==True:
-#        print(mes5_tup,mes3_tup)
-
-    if verbose:
-        return mes5_dt,mes3_dt,mes5_tup[1],mes3_tup[1]
-    else:
-        return mes5_dt,mes3_dt
-
-def mes_byCoord_subs(chrNum,chrSta,chrEnd,strand,ref,alt,assembly,verbose=False): # assuming substitution, base-1 inclusive
-
-    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-23,chrEnd+22,strand))
-
-    s_before = l.twoBitFrag(assembly)
-
-    if s_before[22:22+len(ref)] != ref:
-        print(s_before, ref, alt)
-        raise Exception
-
-    s_after = s_before[:22] + alt + s_before[-22:]
-
-    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
-    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after),)
-
-    mes5_dt = np.array(mes5_tup[1])-np.array(mes5_tup[0])
-    mes3_dt = np.array(mes3_tup[1])-np.array(mes3_tup[0])
-
-#    if verbose==True:
-#        print(mes5_tup,mes3_tup)
-
-    if verbose:
-        return mes5_dt,mes3_dt,mes5_tup,mes3_tup
-    else:
-        return mes5_dt,mes3_dt
-
-def mes_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,assembly): # base-0 exclusive
-
-    ref = '' if ref=='-' else ref
-    alt = '' if alt=='-' else alt
-
-    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-22,chrEnd+22,strand))
-
-    s_before = l.twoBitFrag(assembly)
-
-    if s_before[22:22+len(ref)] != ref:
-        print(s_before, chrNum, chrSta, chrEnd, ref, alt)
-        raise Exception
-
-    s_after = s_before[:22] + alt + s_before[-22:]
-
-    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
-    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after))
-
-    return mes5_tup,mes3_tup
-
-def mes5_byCoord(chrNum,pos,strand,assembly): # pos is 1-base sta or end of intron
-
-    if strand == '+':
-        l = locus('chr%s:%s-%s%s' % (chrNum,pos-4,pos+5,'+'))
-    else:
-        l = locus('chr%s:%s-%s%s' % (chrNum,pos-6,pos+3,'-'))
-
-    s = l.twoBitFrag(assembly)
-    return s,mes5(s)
-
-def mes3_byCoord(chrNum,pos,strand,assembly): # pos is 1-base sta or end of intron
-
-    if strand == '+':
-        l = locus('chr%s:%s-%s%s' % (chrNum,pos-20,pos+3,'+'))
-    else:
-        l = locus('chr%s:%s-%s%s' % (chrNum,pos-4,pos+19,'-'))
-
-    s = l.twoBitFrag(assembly)
-    return s,mes3(s)
 
 def spliceAI_run(chrom,pos,ref,alt): # hg38, pos-1; indel exam: T to TA
 
