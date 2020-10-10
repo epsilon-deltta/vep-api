@@ -184,7 +184,6 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
         hexH4 = load_hexamer4()
     
     regions = locus("%s:%s-%s%s"%('chr'+str(chrNum), chrPos-1, chrPos, '+')).regionType() # UCSC genome 0-based
-    print("regions ",regions)
     #(t['transName'],t['transID'],flag, sense, marg)
     r_ls = []
     for region in regions:
@@ -201,23 +200,18 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
         print('Given region has long non coding (lnc) annotations only')
     for i,r in enumerate(r_ls):
         result[i] = {}
-        if i>0:
-            print()
 
         transName, strand = r
-        print(transName, strand)
-        print()
 
         result[i]['transName'] = transName
-        result[i]['strand'] = strand
+        result[i]['strand']    = strand
+
         if strand == '-':
             ref_, alt_ = jkbio.rc(ref), jkbio.rc(alt)
         else:
             ref_, alt_ = ref, alt
         
-        print('Hexamer')
         hex_result = hexamer4_byCoord_general(chrNum,chrPos,chrPos,strand,ref_,alt_,hexH4,assembly)
-        print(hex_result)
         result[i]['hexamer'] = hex_result
 
         # result['hexamer'] = hex_result
@@ -226,18 +220,12 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             result[i]['type']    = 'snv'
             
             mes_result = mes_byCoord(chrNum,chrPos,strand,ref_,alt_,assembly,verbose=True)
-            
-            print('MES donor')
+            # 'MES donor'
             donor_delta = list(map(float,list(mes_result[0])))
             donor_final = list(map(float,mes_result[2]))
-            print('delta', donor_delta )
-            print('final', donor_final )
-            
-            print('MES acceptor')
+            # 'MES acceptor'
             acceptor_delta = list(map(float,list(mes_result[1])))
             acceptor_final = list(map(float,mes_result[3]))
-            print('delta', acceptor_delta )
-            print('final', acceptor_final )
 
             maxents_dict = {}
             maxents_dict['donor'   ] = {'delta' :donor_delta,'final' : donor_final }   
@@ -245,35 +233,21 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             result[i]['mes'] = maxents_dict 
         else:
 
-            result['type'] = 'indel'
+            result[i]['type'] = 'indel'
 
             mes_result = mes_byCoord_general(chrNum,chrPos,chrPos+len(ref_)-1,strand,ref_,alt_,assembly)
-            
-            print('MES donor')
+            # 'MES donor' 
             donor_ref = list(map(float,mes_result[0][0]))
             donor_alt = list(map(float,mes_result[0][1]))
-            print('ref', donor_ref )
-            print('alt', donor_alt )
-            
-            print('MES acceptor')
+            # 'MES acceptor'
             acceptor_ref = list(map(float,mes_result[1][0]))
             acceptor_alt = list(map(float,mes_result[1][1]))
-            print('ref', acceptor_ref )
-            print('alt', acceptor_alt )
+
             
             maxents_dict = {}
             maxents_dict['donor'   ] = {'ref' :donor_ref,'alt' : donor_alt }   
             maxents_dict['acceptor'] = {'ref' :acceptor_ref,'alt' : acceptor_alt }
             result[i]['mes'] = maxents_dict
-        for x in result[i]:
-            print(x," : ",result[i][x])
-    print("result :")
-    # for x in result:
-        # print(x)
-    print(result)
-
-
-    print("result====================================")
     return result 
 # ==================maxentscan============================
 def mes5(seq): # seq example: CAGgtaagt
