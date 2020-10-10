@@ -151,6 +151,27 @@ def load_hexamer(segType):
 ###############################################################
 ###############################################################
 # input: 12,51391349,'T','GG'
+# output_exam 
+# { 'count': 2, 
+#      0   : { 'type'     : 'snv', 
+#              'strand'   : '-'    ,         
+#              'transName': 'GALNT6',
+#              'hexamer'  : { '5p_exon'  : 0.26357736584766656, 
+#                             '3p_exon'  : -1.519055738781958, 
+#                             '5p_intron': -0.016999846994960266, 
+#                             '3p_intron': -1.7098262852115953 }, 
+#              'mes'      : { 'donor'   : {'delta': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
+#                                          'final': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, 
+#                             'acceptor': { 'delta': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
+#                                           'final': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}             },
+#      1   : { ...
+#              'mes'      : { 'donor'   : {'ref': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
+#                                          'alt': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, 
+#                             'acceptor': { 'ref': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
+#                                           'alt': [0.0, 0.0, 0.0, 0. ....
+# }
+
+
 def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
     # ref>alt conversion: + strand oriented
     
@@ -173,49 +194,87 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             
     r_ls = list(set(r_ls))
     
+    result ={}
+    result['count'] = len(r_ls)
+    
     if not len(r_ls): # only 'lnc' regions <= how to deal with?
         print('Given region has long non coding (lnc) annotations only')
-        pass
-    
     for i,r in enumerate(r_ls):
+        result[i] = {}
         if i>0:
             print()
 
         transName, strand = r
         print(transName, strand)
         print()
-        
+
+        result[i]['transName'] = transName
+        result[i]['strand'] = strand
         if strand == '-':
             ref_, alt_ = jkbio.rc(ref), jkbio.rc(alt)
         else:
             ref_, alt_ = ref, alt
         
         print('Hexamer')
-        print(hexamer4_byCoord_general(chrNum,chrPos,chrPos,strand,ref_,alt_,hexH4,assembly))
-        print()
+        hex_result = hexamer4_byCoord_general(chrNum,chrPos,chrPos,strand,ref_,alt_,hexH4,assembly)
+        print(hex_result)
+        result[i]['hexamer'] = hex_result
 
+        # result['hexamer'] = hex_result
         if len(ref)==len(alt):
-            mes_result = mes_byCoord(chrNum,chrPos,strand,ref_,alt_,assembly,verbose=True)
 
-            print('MES donor')
-            print('delta', list(map(float,list(mes_result[0]))))
-            print('final', list(map(float,mes_result[2])))
-
-            print('MES acceptor')
-            print('delta', list(map(float,list(mes_result[1]))))
-            print('final', list(map(float,mes_result[3])))
+            result[i]['type']    = 'snv'
             
+            mes_result = mes_byCoord(chrNum,chrPos,strand,ref_,alt_,assembly,verbose=True)
+            
+            print('MES donor')
+            donor_delta = list(map(float,list(mes_result[0])))
+            donor_final = list(map(float,mes_result[2]))
+            print('delta', donor_delta )
+            print('final', donor_final )
+            
+            print('MES acceptor')
+            acceptor_delta = list(map(float,list(mes_result[1])))
+            acceptor_final = list(map(float,mes_result[3]))
+            print('delta', acceptor_delta )
+            print('final', acceptor_final )
+
+            maxents_dict = {}
+            maxents_dict['donor'   ] = {'delta' :donor_delta,'final' : donor_final }   
+            maxents_dict['acceptor'] = {'delta' :acceptor_delta,'final' : acceptor_final }
+            result[i]['mes'] = maxents_dict 
         else:
+
+            result['type'] = 'indel'
+
             mes_result = mes_byCoord_general(chrNum,chrPos,chrPos+len(ref_)-1,strand,ref_,alt_,assembly)
             
             print('MES donor')
-            print('ref', list(map(float,mes_result[0][0])))
-            print('alt', list(map(float,mes_result[0][1])))
+            donor_ref = list(map(float,mes_result[0][0]))
+            donor_alt = list(map(float,mes_result[0][1]))
+            print('ref', donor_ref )
+            print('alt', donor_alt )
             
             print('MES acceptor')
-            print('ref', list(map(float,mes_result[1][0])))
-            print('alt', list(map(float,mes_result[1][1])))
+            acceptor_ref = list(map(float,mes_result[1][0]))
+            acceptor_alt = list(map(float,mes_result[1][1]))
+            print('ref', acceptor_ref )
+            print('alt', acceptor_alt )
             
+            maxents_dict = {}
+            maxents_dict['donor'   ] = {'ref' :donor_ref,'alt' : donor_alt }   
+            maxents_dict['acceptor'] = {'ref' :acceptor_ref,'alt' : acceptor_alt }
+            result[i]['mes'] = maxents_dict
+        for x in result[i]:
+            print(x," : ",result[i][x])
+    print("result :")
+    # for x in result:
+        # print(x)
+    print(result)
+
+
+    print("result====================================")
+    return result 
 # ==================maxentscan============================
 def mes5(seq): # seq example: CAGgtaagt
 
@@ -1297,7 +1356,7 @@ def hexamer4_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,hexH4,assembly)
     result = {}
 
     for h,hexH in hexH4.items():
-
+        
         scores_after = hexamer(s_after,hexH)
         scores_before = hexamer(s_before,hexH)
 
@@ -1424,8 +1483,6 @@ class locus: # UCSC type
         import platform as pl
         sep = os.path.sep
         homedir = os.path.abspath(os.path.dirname(__file__)+sep+'data')
-        print(homedir)
-        print(assembly)
         twoBitFilePath='%s/D/Sequences/%s/%s.2bit' % (homedir,assembly,assembly)
 
         if self.strand == '+':
@@ -1434,7 +1491,7 @@ class locus: # UCSC type
         else:
             staPos = self.chrSta - buffer3p
             endPos = self.chrEnd + buffer5p
-        print(twoBitFilePath,'  chrom:',self.chrom,'  stapos: ',staPos,'  endpos: ',endPos)
+        print('  chrom:',self.chrom,'  stapos: ',staPos,'  endpos: ',endPos)
         if pl.system().lower() =='windows':
             fragFile = os.popen
         else:            
