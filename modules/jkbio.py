@@ -56,9 +56,17 @@ def compl(seq, seqType='DNA'):
 
     for c in seq.upper():
         if seqType=='DNA':
-            seq_ret.append(wc_DNA[c])
+            try:
+                tmp = wc_DNA[c]
+            except KeyError:
+                tmp = c
+            seq_ret.append(tmp)
         elif seqType=='RNA':
-            seq_ret.append(wc_RNA[c])
+            try:
+                tmp = wc_RNA[c]
+            except KeyError:
+                tmp = c
+            seq_ret.append(tmp)
         else:
             raise Exception
 
