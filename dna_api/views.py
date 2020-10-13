@@ -65,7 +65,7 @@ def test_client_json(request):
         if request.method == 'POST':
             print('Raw Data: %s' % request.body)   
     return HttpResponse("OK")
-
+# /seq/spliceai
 @csrf_exempt 
 def spliceAi(request):
     context ={}
@@ -77,6 +77,30 @@ def spliceAi(request):
     response = HttpResponse(simplejson.dumps(context), content_type="application/json")
     return response
 
+# /seq/spliceai_opt
+@csrf_exempt 
+def spliceAi_option(request):
+    context ={}
+    if request.body is not None:
+        data = json.loads(request.body)
+        context  = sp.get_splice_ai_option(data['seq'],data['option'])
+    else:
+        print("It's empty")
+    response = HttpResponse(simplejson.dumps(context), content_type="application/json")
+    return response
+    
+# /seq/hex_mas
+@csrf_exempt 
+def hex_mas(request):
+    context ={}
+    if request.body is not None:
+        data = json.loads(request.body)
+        context  = sp.get_hexamer_maxent1(data['seq'])
+    else:
+        print("It's empty")
+    response = HttpResponse(simplejson.dumps(context), content_type="application/json")
+    return response
+# /seq/test0
 def test(request):
     return HttpResponse("Test successed")
     

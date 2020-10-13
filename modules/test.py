@@ -3,11 +3,13 @@ import os
 import time
 print("=====start")
 # result = jk.spliceAI('11:108241292-108241292') #output 01
-def spliceai_test():    
-    result = jk.spliceAI('11:108236168-108236168') #output 01
+# output ex) [{'chrN': '11', 'pos': 108236168, 'ref': 'A', 'alt': 'C', 'geneName': 'ATM', 'score': {'AG': 0.0, 'AL': 0.0, 'DG': 0.02, 'DL': 0.01}, 'relPos': {'AG': 5, 'AL': 2, 'DG': 4, 'DL': -48}} ...
+# input chr12:51391349-51391349 //it doesn't work
+def spliceai_test(locus_str='chr11:108236168-108236168'):    
+    result = jk.spliceAI(locus_str) #output 01
     for x in result:
         print(x)
-
+1
 # input  : 12,51391349,'T','G'
 # output :
 # {'count': 2, 
@@ -19,7 +21,20 @@ def spliceai_test():
 # 1: {'transName': 'SLC4A8', 'strand': '+', 'hexamer': {'5p_exon': 0.26357736584766656, '3p_exon': -1.519055738781958, '5p_intron': -0.016999846994960266, '3p_intron': -1.7098262852115953}, 'type': 'snv', 'mes': {'donor': {'delta': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, 'acceptor': {'delta': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}}}
 def variant_bi2_test():
     result = jk.variant_bi2(12,51391349,'T','G')
+    
     return result
-if __name__ == '__main__':
-    print(variant_bi2_test())
+def variant_bi2_test_indel():
+    result = jk.variant_bi2(11,108236165, 'TTCAG','T')
+    result = jk.variant_bi2(11,108236168 A>AT)
+    
+    
+    return result
 # /HDD8/ypil/djg-api-test/modules/data/tools/tabix-0.2.6/tabix /HDD8/ypil/djg-api-test/modules/data/BigFiles/SpliceAI/spliceai_scores.raw.indel.hg38.vcf.gz 11:108236168-10823616
+if __name__ == '__main__':
+    print(variant_bi2_test_indel())
+    # spliceai_test('chr12:51391349-51391349')
+    # spliceai_test('chr11:108236168-108236168')
+    # print(jk.locus("chr11:108236168-108236169+").twoBitFrag())
+    # print(jk.locus("12:51391349-51391349+").twoBitFrag())
+    # 12 is not in /HDD8/ypil/djg-api-test/modules/data/D/Sequences/hg38/hg38.2bit
+

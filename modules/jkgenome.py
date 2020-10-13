@@ -14,6 +14,10 @@ homedir=os.path.dirname(__file__) +sep + 'data'
 refFlat_path = '%s/D/refFlat.txt' %(homedir) #added 
 ###############################################################
 ###############################################################
+# ===============locus================================
+
+# ===========
+
 # ================splice AI=================== #
 def spliceAI(locusStr): # locusStr: 1-base, 1-base
 
@@ -148,6 +152,48 @@ def load_hexamer(segType):
     import dnatools
     sep = os.path.sep #ypil added
     return pd.Series(index=dnatools.make_mer_list(6),data=np.load('%sPackages/cell-2015/results/N4_Motif_Effect_Sizes/%sSS/mean_effects_sdpos_%s.npy' % (os.path.dirname(__file__)+sep+'data'+sep,s[0],s[1])))
+# ==============================================================
+def hexamer4_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,hexH4,assembly): # pos, 0-base, inclusive
+
+    ref = '' if ref=='-' else ref
+    alt = '' if alt=='-' else alt
+
+    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-6,chrEnd+5,strand))
+
+    s_before = l.twoBitFrag(assembly)
+
+    if s_before[5:5+len(ref)] != ref:
+        print(s_before, ref, alt)
+        raise Exception
+
+    s_after = s_before[:5] + alt + s_before[-5:]
+
+    if 'N' in s_before or 'N' in s_after:
+        print (s_before,s_after)
+        raise Exception
+
+    result = {}
+
+    for h,hexH in hexH4.items():
+        
+        scores_after = hexamer(s_after,hexH)
+        scores_before = hexamer(s_before,hexH)
+
+        result[h] = sum(scores_after) - sum(scores_before)
+
+    #return scores_before, scores_after, scores_after - scores_before, sum(scores_after - scores_before)
+    return result
+
+def hexamer(seq,hexH): 
+
+    resultL = []
+
+    for i in range(len(seq)-5):
+        
+        s = seq[i:i+6]
+        resultL.append(hexH[s])
+
+    return pd.Series(resultL)
 ###############################################################
 ###############################################################
 # input: 12,51391349,'T','GG'
@@ -249,20 +295,94 @@ def variant_bi2(chrNum,chrPos,ref,alt,assembly='hg38',hexH4=False):
             maxents_dict['acceptor'] = {'ref' :acceptor_ref,'alt' : acceptor_alt }
             result[i]['mes'] = maxents_dict
     return result 
+# ========================================================
 # ==================maxentscan============================
-def mes5(seq): # seq example: CAGgtaagt
+def mes_byCoord(chrNum,pos,strand,ref,alt,assembly,verbose=False): # assuming single nt to single nt change, base-1 inclusive
 
-    if len(seq) != 9:
-        raise Exception
-    print(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())    
-    return float(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())
+    l = locus('chr%s:%s-%s%s' % (chrNum,pos-23,pos+22,strand))
 
-def mes3(seq): # seq example: ttcca aacga acttt tgtag GGA (23)
+    s_before = l.twoBitFrag(assembly)
 
-    if len(seq) != 23:
+    if s_before[22:22+len(ref)] != ref:
+        print(s_before, ref, alt)
         raise Exception
 
-    return float(os.popen('cd %s/tools/maxentscan; perl score3_mod.pl %s' % (homedir,seq)).readline())
+    s_after = s_before[:22] + alt + s_before[-22:]
+
+    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
+    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after),)
+
+    mes5_dt = np.array(mes5_tup[1])-np.array(mes5_tup[0])
+    mes3_dt = np.array(mes3_tup[1])-np.array(mes3_tup[0])
+
+#    if verbose==True:
+#        print(mes5_tup,mes3_tup)
+
+    if verbose:
+        return mes5_dt,mes3_dt,mes5_tup[1],mes3_tup[1]
+    else:
+        return mes5_dt,mes3_dt
+
+def mes_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,assembly): # base-1 inclusive
+
+    ref = '' if ref=='-' else ref
+    alt = '' if alt=='-' else alt
+
+    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-23,chrEnd+22,strand))
+
+    s_before = l.twoBitFrag(assembly)
+
+    if s_before[22:22+len(ref)] != ref:
+        print (s_before, chrNum, chrSta, chrEnd, ref, alt)
+        raise Exception
+
+    s_after = s_before[:22] + alt + s_before[-22:]
+
+    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]))
+    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after))
+
+    return mes5_tup,mes3_tup
+# def mes_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,assembly): # base-0 exclusive
+
+#     ref = '' if ref=='-' else ref
+#     alt = '' if alt=='-' else alt
+
+#     l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-22,chrEnd+22,strand))
+
+#     s_before = l.twoBitFrag(assembly)
+
+#     if s_before[22:22+len(ref)] != ref:
+#         print(s_before, chrNum, chrSta, chrEnd, ref, alt)
+#         raise Exception
+
+#     s_after = s_before[:22] + alt + s_before[-22:]
+
+#     mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
+#     mes3_tup = (mes3_scan(s_before),mes3_scan(s_after))
+
+#     return mes5_tup,mes3_tup
+
+def mes_byCoord_general_b1(chrNum,chrSta,chrEnd,strand,ref,alt,assembly): # base-0 exclusive
+    chrSta = chrSta -1
+    chrEnd = chrEnd -2
+
+    ref = '' if ref=='-' else ref
+    alt = '' if alt=='-' else alt
+
+    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-22,chrEnd+22,strand))
+
+    s_before = l.twoBitFrag(assembly)
+
+    if s_before[22:22+len(ref)] != ref:
+        print(s_before, chrNum, chrSta, chrEnd, ref, alt)
+        raise Exception
+
+    s_after = s_before[:22] + alt + s_before[-22:]
+
+    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
+    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after))
+
+    return mes5_tup,mes3_tup    
 
 def mes5_scan(seq):
 
@@ -299,32 +419,22 @@ def mes3_scan(seq):
     resultL = [(0 if x==None or x<0 else x) for x in resultL]
 
     return np.array(resultL)
+def mes5(seq): # seq example: CAGgtaagt
 
-def mes_byCoord(chrNum,pos,strand,ref,alt,assembly,verbose=False): # assuming single nt to single nt change, base-1 inclusive
+    if len(seq) != 9:
+        raise Exception
+    print(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())    
+    return float(os.popen('cd %s/tools/maxentscan; perl score5_mod.pl %s' % (homedir,seq)).readline())
 
-    l = locus('chr%s:%s-%s%s' % (chrNum,pos-23,pos+22,strand))
+def mes3(seq): # seq example: ttcca aacga acttt tgtag GGA (23)
 
-    s_before = l.twoBitFrag(assembly)
-
-    if s_before[22:22+len(ref)] != ref:
-        print(s_before, ref, alt)
+    if len(seq) != 23:
         raise Exception
 
-    s_after = s_before[:22] + alt + s_before[-22:]
+    return float(os.popen('cd %s/tools/maxentscan; perl score3_mod.pl %s' % (homedir,seq)).readline())
 
-    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
-    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after),)
 
-    mes5_dt = np.array(mes5_tup[1])-np.array(mes5_tup[0])
-    mes3_dt = np.array(mes3_tup[1])-np.array(mes3_tup[0])
 
-#    if verbose==True:
-#        print(mes5_tup,mes3_tup)
-
-    if verbose:
-        return mes5_dt,mes3_dt,mes5_tup[1],mes3_tup[1]
-    else:
-        return mes5_dt,mes3_dt
 
 def mes_byCoord_subs(chrNum,chrSta,chrEnd,strand,ref,alt,assembly,verbose=False): # assuming substitution, base-1 inclusive
 
@@ -352,25 +462,6 @@ def mes_byCoord_subs(chrNum,chrSta,chrEnd,strand,ref,alt,assembly,verbose=False)
     else:
         return mes5_dt,mes3_dt
 
-def mes_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,assembly): # base-0 exclusive
-
-    ref = '' if ref=='-' else ref
-    alt = '' if alt=='-' else alt
-
-    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-22,chrEnd+22,strand))
-
-    s_before = l.twoBitFrag(assembly)
-
-    if s_before[22:22+len(ref)] != ref:
-        print(s_before, chrNum, chrSta, chrEnd, ref, alt)
-        raise Exception
-
-    s_after = s_before[:22] + alt + s_before[-22:]
-
-    mes5_tup = (mes5_scan(s_before[14:-14]),mes5_scan(s_after[14:-14]),)
-    mes3_tup = (mes3_scan(s_before),mes3_scan(s_after))
-
-    return mes5_tup,mes3_tup
 
 def mes5_byCoord(chrNum,pos,strand,assembly): # pos is 1-base sta or end of intron
 
@@ -448,31 +539,7 @@ def loadAppris_refseq(path = '%s/D/Sequences/APPRIS_RefSeq107_20170423_src201704
 
 # gencode basic: D/Sequences/gencode_24/wgEncodeGencodeBasicV24lift37.txt.gz
 # gencode comp: D/Sequences/gencode_24/wgEncodeGencodeCompV24lift37.txt.gz
-def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
-    h = collections.defaultdict(list)
-    if blatOutputPath.endswith('.gz'):
-        f = gzip.open(blatOutputPath)
-    else:
-        f = open(blatOutputPath)
-
-    for line in f:
-        
-        if line[0] == '#':
-            continue
-
-        r = processBlatLine(line)
-
-        if r['transID'] in blacklist:
-            continue
-
-        h[r[by]].append(r)
-
-    from operator import attrgetter, itemgetter
-
-    for k,vL in list(h.items()):
-        h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
-    return h
 # def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
 #     h = collections.defaultdict(list)
@@ -502,11 +569,6 @@ def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 def loadBlatOutputByGene(blatOutputPath):
 
     return loadBlatOutput(blatOutputPath, 'geneName')
-
-# ===========
-def loadBlatOutputByChr(blatOutputPath=refFlat_path):
-
-    return loadBlatOutput(blatOutputPath, 'chrom')
 
 def loadBlatOutputByID(blatOutputPath):
 
@@ -637,71 +699,7 @@ def margin(innerRange,outerRange): # 0-base
     o_s,o_e = outerRange
 
     return i_s-o_s, o_e-i_e+1
-def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
 
-    locT = (loc.chrom,loc.chrSta+1,loc.chrEnd)
-    regions = []
-    for t in h[locT[0]]:
-
-        if t['txnEnd'] < locT[1]:
-            continue
-
-        elif locT[2] <= t['txnSta']:
-            break
-
-        if t['strand']==loc.strand:
-            sense = 'sense'
-        else:
-            sense = 'antisense'
-
-        flag = None
-
-        for regionName in ['cdsList','utr5','utr3','intron']:
-
-            for s,e in t[regionName]:
-
-                if overlap(('_',locT[1]-1,locT[2]),('_',s,e)) == 0:
-                    continue
-
-                if regionName == 'cdsList':
-
-                    if locT[2]-locT[1] == 0:
-
-                        offset = 0
-
-                        for s,e in t['cdsList']:
-                            offset += min(e,locT[1])-min(s,locT[1])
-
-                        frame = (offset-1) % 3
-
-                        if t['strand'] == '-':
-                            frame= 2-frame
-
-                        flag = 'cds_%d_%d' % (offset-1,frame)
-
-                    else:
-
-                        flag = 'cds_m'
-
-                else:
-
-                    flag = regionName
-
-                marg = margin((locT[1]-1,locT[2]),(s,e))
-
-                if (marg[0] or marg[1]) < 0:
-                    continue
-
-                else:
-                    regions.append((t['transName'],t['transID'],flag, sense, marg))
-
-#                if sense == 'antisense':
-#                    marg = tuple(marg[::-1])
-
-        if t['cdsList'] == []:
-            regions.append((t['transName'],t['transID'],'lnc', sense, -1))
-
-    return list(set(regions))
 
 
 def getRegionTypeUsingTransH(transH,gPos): # transH: individual transcript hash; gPos: 1-base
@@ -1270,16 +1268,7 @@ def labranchor_query(locusStr):
 
 
 
-def hexamer(seq,hexH): 
 
-    resultL = []
-
-    for i in range(len(seq)-5):
-        
-        s = seq[i:i+6]
-        resultL.append(hexH[s])
-
-    return pd.Series(resultL)
 
 #def hexamer_delta(s_before,s_after,hexH):
 #
@@ -1308,36 +1297,6 @@ def hexamer_byCoord(chrNum,pos,strand,ref,alt,hexH,assembly,verbose=False):
 
     return sum(scores_after - scores_before)
 
-def hexamer4_byCoord_general(chrNum,chrSta,chrEnd,strand,ref,alt,hexH4,assembly): # pos, 0-base, inclusive
-
-    ref = '' if ref=='-' else ref
-    alt = '' if alt=='-' else alt
-
-    l = locus('chr%s:%s-%s%s' % (chrNum,chrSta-6,chrEnd+5,strand))
-
-    s_before = l.twoBitFrag(assembly)
-
-    if s_before[5:5+len(ref)] != ref:
-        print(s_before, ref, alt)
-        raise Exception
-
-    s_after = s_before[:5] + alt + s_before[-5:]
-
-    if 'N' in s_before or 'N' in s_after:
-        print (s_before,s_after)
-        raise Exception
-
-    result = {}
-
-    for h,hexH in hexH4.items():
-        
-        scores_after = hexamer(s_after,hexH)
-        scores_before = hexamer(s_before,hexH)
-
-        result[h] = sum(scores_after) - sum(scores_before)
-
-    #return scores_before, scores_after, scores_after - scores_before, sum(scores_after - scores_before)
-    return result
 
 def calColor(score):
 
@@ -1355,129 +1314,7 @@ def calColor(score):
 class InitiationFailureException(Exception): pass
 
 
-class locus: # UCSC type
-    
-    def __init__(self,loc,id=''):
 
-        rm = re.match('([^:]+):([0-9,]+)-([0-9,]+)([+-])',loc) # base-0, base-1
-
-        if rm:
-
-            self.strand = rm.group(4)
-            self.chrom = rm.group(1)
-
-            if self.chrom[:3] == 'chr':
-                self.chrNum = rm.group(1)[3:]
-            else:
-                self.chrNum = None
-
-            self.chrSta = int(rm.group(2))
-            self.chrEnd = int(rm.group(3))
-
-            self.id = id
-
-        else:
-
-            rm = re.match('([+-])([^:]+):([0-9,]+)..([0-9,]+)',loc) # base-1, base-1
-
-            if rm:
-
-                self.strand = rm.group(1)
-                self.chrom = rm.group(2)
-
-                if self.chrom[:3] == 'chr':
-                    self.chrNum = rm.group(2)[3:]
-                else:
-                    self.chrNum = None
-
-                chrPosL = [int(rm.group(3)), int(rm.group(4))]
-
-                self.chrSta = min(chrPosL) - 1
-                self.chrEnd = max(chrPosL) 
-
-                self.id = id
-
-            else:
-
-                raise Exception
-
-    def toString(self,style='UCSC'):
-
-        if style=='gsnap':
-            return '%s%s:%s..%s' % (self.strand,self.chrom,self.chrSta+1,self.chrEnd)
-        else:
-            return '%s:%s-%s%s' % (self.chrom,self.chrSta,self.chrEnd,self.strand)
-
-    def overlap(self,region):
-
-        return overlap((self.chrom,self.chrSta,self.chrEnd),region)
-
-    def overlappingGeneL(self,refFlatH=None,refFlatFileName='~/D/Sequences/ucsc_hg19_ref/refseq',strand_sensitive=False):
-
-        gL = set()
-
-        if refFlatH == None and refFlatFileName != '':
-            refFlatH = loadRefFlatByChr(refFlatFileName)
-        
-        if self.chrom not in refFlatH:
-            return []
-
-        for l in refFlatH[self.chrom]:
-
-            if strand_sensitive:
-
-                if self.overlap((l['chrom'],l['txnSta'],l['txnEnd'])) > 0 and self.strand==l['strand']:
-                    gL.add(l['geneName'])
-
-            else:
-
-                if self.overlap((l['chrom'],l['txnSta'],l['txnEnd'])) > 0:
-                    gL.add(l['geneName'])
-
-        return tuple(gL)
-
-    def regionType(self,h=loadBlatOutputByChr()):
-        return getRegionType(h,self)
-
-#    def nibFrag(self, nibFragBase='/%s/D/Sequences/hg19/refFlat_hg19.txt' % (homedir,), buffer5p=0, buffer3p=0):
-#
-#        if self.strand == '+':
-#            staPos = self.chrSta - buffer5p
-#            endPos = self.chrEnd + buffer3p
-#        else:
-#            staPos = self.chrSta - buffer3p
-#            endPos = self.chrEnd + buffer5p
-#
-#        nibFragFile = os.popen('nibFrag -name="" %s/%s.nib %s %s %s stdout' % (nibFragBase, self.chrom, staPos, endPos, self.strand), 'r')
-#
-#        nibFragFile.readline()
-#
-#        return nibFragFile.read().replace('\n','').rstrip().upper()
-    def twoBitFrag(self, assembly, buffer5p=0, buffer3p=0):
-        import platform as pl
-        sep = os.path.sep
-        homedir = os.path.abspath(os.path.dirname(__file__)+sep+'data')
-        twoBitFilePath='%s/D/Sequences/%s/%s.2bit' % (homedir,assembly,assembly)
-
-        if self.strand == '+':
-            staPos = self.chrSta - buffer5p
-            endPos = self.chrEnd + buffer3p
-        else:
-            staPos = self.chrSta - buffer3p
-            endPos = self.chrEnd + buffer5p
-        print('  chrom:',self.chrom,'  stapos: ',staPos,'  endpos: ',endPos)
-        if pl.system().lower() =='windows':
-            fragFile = os.popen
-        else:            
-            fragFile = os.popen('%s/tools/jkent/twoBitToFa %s:%s:%s-%s stdout' % (homedir, twoBitFilePath, self.chrom, staPos, endPos), 'r')
-        fragFile.readline()
-
-        seq = fragFile.read().replace('\n','').rstrip().upper()
-
-        if self.strand == '+':
-            return seq
-        else:
-            return jkbio.rc(seq)
     
 class transcript:
 
@@ -1900,3 +1737,203 @@ class tcgaCnaDB:
             return self.db[geneN][self.idx[sampN]]
         else:
             return ''
+def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
+
+    h = collections.defaultdict(list)
+    if blatOutputPath.endswith('.gz'):
+        f = gzip.open(blatOutputPath)
+    else:
+        f = open(blatOutputPath)
+
+    for line in f:
+        
+        if line[0] == '#':
+            continue
+
+        r = processBlatLine(line)
+
+        if r['transID'] in blacklist:
+            continue
+
+        h[r[by]].append(r)
+
+    from operator import attrgetter, itemgetter
+
+    for k,vL in list(h.items()):
+        h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
+    return h
+def loadBlatOutputByChr(blatOutputPath=refFlat_path):
+
+    return loadBlatOutput(blatOutputPath, 'chrom')
+
+class locus: # UCSC type
+    
+    def __init__(self,loc,id=''):
+
+        rm = re.match('([^:]+):([0-9,]+)-([0-9,]+)([+-])',loc) # base-0, base-1
+
+        if rm:
+
+            self.strand = rm.group(4)
+            self.chrom = rm.group(1)
+
+            if self.chrom[:3] == 'chr':
+                self.chrNum = rm.group(1)[3:]
+            else:
+                self.chrNum = None
+
+            self.chrSta = int(rm.group(2))
+            self.chrEnd = int(rm.group(3))
+
+            self.id = id
+
+        else:
+
+            rm = re.match('([+-])([^:]+):([0-9,]+)..([0-9,]+)',loc) # base-1, base-1
+
+            if rm:
+
+                self.strand = rm.group(1)
+                self.chrom = rm.group(2)
+
+                if self.chrom[:3] == 'chr':
+                    self.chrNum = rm.group(2)[3:]
+                else:
+                    self.chrNum = None
+
+                chrPosL = [int(rm.group(3)), int(rm.group(4))]
+
+                self.chrSta = min(chrPosL) - 1
+                self.chrEnd = max(chrPosL) 
+
+                self.id = id
+
+            else:
+
+                raise Exception
+
+    def toString(self,style='UCSC'):
+
+        if style=='gsnap':
+            return '%s%s:%s..%s' % (self.strand,self.chrom,self.chrSta+1,self.chrEnd)
+        else:
+            return '%s:%s-%s%s' % (self.chrom,self.chrSta,self.chrEnd,self.strand)
+
+    def overlap(self,region):
+
+        return overlap((self.chrom,self.chrSta,self.chrEnd),region)
+
+    def overlappingGeneL(self,refFlatH=None,refFlatFileName='~/D/Sequences/ucsc_hg19_ref/refseq',strand_sensitive=False):
+
+        gL = set()
+
+        if refFlatH == None and refFlatFileName != '':
+            refFlatH = loadRefFlatByChr(refFlatFileName)
+        
+        if self.chrom not in refFlatH:
+            return []
+
+        for l in refFlatH[self.chrom]:
+
+            if strand_sensitive:
+
+                if self.overlap((l['chrom'],l['txnSta'],l['txnEnd'])) > 0 and self.strand==l['strand']:
+                    gL.add(l['geneName'])
+
+            else:
+
+                if self.overlap((l['chrom'],l['txnSta'],l['txnEnd'])) > 0:
+                    gL.add(l['geneName'])
+
+        return tuple(gL)
+
+    def regionType(self,h=loadBlatOutputByChr()): 
+        return getRegionType(h,self)
+
+
+    def twoBitFrag(self, assembly='hg38', buffer5p=0, buffer3p=0):
+        import platform as pl
+        sep = os.path.sep
+        homedir = os.path.abspath(os.path.dirname(__file__)+sep+'data')
+        twoBitFilePath='%s/D/Sequences/%s/%s.2bit' % (homedir,assembly,assembly)
+
+        if self.strand == '+':
+            staPos = self.chrSta - buffer5p
+            endPos = self.chrEnd + buffer3p
+        else:
+            staPos = self.chrSta - buffer3p
+            endPos = self.chrEnd + buffer5p
+        print('  chrom:',self.chrom,'  stapos: ',staPos,'  endpos: ',endPos)
+        if pl.system().lower() =='windows':
+            fragFile = os.popen
+        else:            
+            fragFile = os.popen('%s/tools/jkent/twoBitToFa %s:%s:%s-%s stdout' % (homedir, twoBitFilePath, self.chrom, staPos, endPos), 'r')
+        fragFile.readline()
+
+        seq = fragFile.read().replace('\n','').rstrip().upper()
+
+        if self.strand == '+':
+            return seq
+        else:
+            return jkbio.rc(seq)
+def getRegionType(h,loc): # locusTupe = (chrom,sta,end) 1-base
+
+    locT = (loc.chrom,loc.chrSta+1,loc.chrEnd)
+    regions = []
+    for t in h[locT[0]]:
+
+        if t['txnEnd'] < locT[1]:
+            continue
+
+        elif locT[2] <= t['txnSta']:
+            break
+
+        if t['strand']==loc.strand:
+            sense = 'sense'
+        else:
+            sense = 'antisense'
+
+        flag = None
+
+        for regionName in ['cdsList','utr5','utr3','intron']:
+
+            for s,e in t[regionName]:
+
+                if overlap(('_',locT[1]-1,locT[2]),('_',s,e)) == 0:
+                    continue
+
+                if regionName == 'cdsList':
+
+                    if locT[2]-locT[1] == 0:
+
+                        offset = 0
+
+                        for s,e in t['cdsList']:
+                            offset += min(e,locT[1])-min(s,locT[1])
+
+                        frame = (offset-1) % 3
+
+                        if t['strand'] == '-':
+                            frame= 2-frame
+
+                        flag = 'cds_%d_%d' % (offset-1,frame)
+
+                    else:
+
+                        flag = 'cds_m'
+
+                else:
+
+                    flag = regionName
+
+                marg = margin((locT[1]-1,locT[2]),(s,e))
+
+                if (marg[0] or marg[1]) < 0:
+                    continue
+
+                else:
+                    regions.append((t['transName'],t['transID'],flag, sense, marg))
+        if t['cdsList'] == []:
+            regions.append((t['transName'],t['transID'],'lnc', sense, -1))
+
+    return list(set(regions))
