@@ -66,7 +66,7 @@ def primateAI_raw(locusStr): # locusStr: 1-base, 1-base
         locusStr = 'chr'+locusStr
 
     chrom = locusStr.split(':')[0]
-    posSta,posEnd = map(int,locusStr.split(':')[-1].split('-'))
+    posSta, posEnd = map(int,locusStr.split(':')[-1].split('-'))
 
     locusStr_new = '%s:%s-%s' % (chrom,posSta-1,posSta+1)
 
@@ -517,7 +517,31 @@ def loadFasta(fastaPath='%s/D/Sequences/gencode_24/gencode.v24lift37.pc_transcri
 
     return h
 
+def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
+    h = collections.defaultdict(list)
+    if blatOutputPath.endswith('.gz'):
+        f = gzip.open(blatOutputPath)
+    else:
+        f = open(blatOutputPath)
+
+    for line in f:
+        
+        if line[0] == '#':
+            continue
+
+        r = processBlatLine(line)
+
+        if r['transID'] in blacklist:
+            continue
+
+        h[r[by]].append(r)
+
+    from operator import attrgetter, itemgetter
+
+    for k,vL in list(h.items()):
+        h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
+    return h
 def loadAppris_refseq(path = '%s/D/Sequences/APPRIS_RefSeq107_20170423_src20170406' % homedir):
 
     h = collections.defaultdict(list)
@@ -566,13 +590,18 @@ def loadAppris_refseq(path = '%s/D/Sequences/APPRIS_RefSeq107_20170423_src201704
 #         h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
 #     return h
 
-def loadBlatOutputByGene(blatOutputPath):
+def loadBlatOutputByGene(blatOutputPath=refFlat_path):
 
     return loadBlatOutput(blatOutputPath, 'geneName')
 
-def loadBlatOutputByID(blatOutputPath):
+def loadBlatOutputByID(blatOutputPath=refFlat_path):
 
     return loadBlatOutput(blatOutputPath,'transID')
+# conver genome to trans
+def loadBlatOutputByChr(blatOutputPath=refFlat_path):
+
+    return loadBlatOutput(blatOutputPath, 'chrom')
+    
 def processBlatLine(line):
 
     tokL = line.rstrip().split('\t')
@@ -718,7 +747,8 @@ def getRegionTypeUsingTransH(transH,gPos): # transH: individual transcript hash;
         raise Exception
 
 
-def convertTrans2Genome(blatH,transID,transPos,transLen=-1): # pos base-1
+# nm_~ ,t_position
+def convertTrans2Genome(transID,transPos,blatH=loadBlatOutputByID(),transLen=-1): # pos base-1
 
     result = []
 
@@ -744,8 +774,10 @@ def convertTrans2Genome(blatH,transID,transPos,transLen=-1): # pos base-1
             tally += n
 
     return result
+# 11:1234
+# transcript - position
 
-def convertGenome2Trans(blatH_byChr,chrNum,gPos): # genomic pos base1, transcript pos base0
+def convertGenome2Trans(chrNum,gPos,blatH_byChr=loadBlatOutputByChr() ): # genomic pos base1, transcript pos base0
 
     if 'chr'+str(chrNum) not in blatH_byChr:
         return []
@@ -1737,34 +1769,8 @@ class tcgaCnaDB:
             return self.db[geneN][self.idx[sampN]]
         else:
             return ''
-def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
-    h = collections.defaultdict(list)
-    if blatOutputPath.endswith('.gz'):
-        f = gzip.open(blatOutputPath)
-    else:
-        f = open(blatOutputPath)
 
-    for line in f:
-        
-        if line[0] == '#':
-            continue
-
-        r = processBlatLine(line)
-
-        if r['transID'] in blacklist:
-            continue
-
-        h[r[by]].append(r)
-
-    from operator import attrgetter, itemgetter
-
-    for k,vL in list(h.items()):
-        h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
-    return h
-def loadBlatOutputByChr(blatOutputPath=refFlat_path):
-
-    return loadBlatOutput(blatOutputPath, 'chrom')
 
 class locus: # UCSC type
     

@@ -3,7 +3,7 @@ import base64
 import os
 
 import jkgenome as jk
-
+from . import seq_type as st
 def get_mes3(seq):
     return jk.mes3(seq)
 # base64    
@@ -41,6 +41,8 @@ def get_splice_ai(seq='11:108236168-108236168'):
     seq = seq.rstrip()
     filter_sign = None 
 
+    if st.check_transID_Type(seq):
+        seq = st.get_transId2pos(seq)
 
     if ' ' in seq:
         filter_sign = seq.split(' ')[1]
@@ -49,6 +51,9 @@ def get_splice_ai(seq='11:108236168-108236168'):
     if '-' not in seq:
         seq = onePos_To_twoPos(seq)
     context = jk.spliceAI(seq)
+
+    # if not bool(context):
+    #     context = jk.get_spliceAI_run(seq)
 
     if filter_sign is not None :
         context = get_matched_seq(context,filter_sign) 

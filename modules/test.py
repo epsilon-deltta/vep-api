@@ -9,7 +9,7 @@ def spliceai_test(locus_str='chr11:108236168-108236168'):
     result = jk.spliceAI(locus_str) #output 01
     for x in result:
         print(x)
-1
+
 # input  : 12,51391349,'T','G'
 # output :
 # {'count': 2, 
@@ -25,16 +25,25 @@ def variant_bi2_test():
     return result
 def variant_bi2_test_indel():
     result = jk.variant_bi2(11,108236165, 'TTCAG','T')
-    result = jk.variant_bi2(11,108236168 A>AT)
-    
-    
+    # result = jk.variant_bi2(11,108236168 A>AT)
+    return result
+# output :[( {'transName', 'transID', 'chrom', 'chrNum', 'strand', 'txnSta', 'txnEnd', 'txnLen', 'cdsSta', 'cdsEnd', 'exnList', 'exnLenList', 'exnLen', 'cdsList', 'utr5', 'utr3', 'utr5Len', 'utr3Len', 'cdsLen', 'intron'}
+#            ,3796  # position
+#            ,'cds' #?    ]
+# output [(,,) ,(,,) ...] // each transcription
+# (,,) = (dict , pos, 'cds' ?? )
+def convertGenome2Trans_test(chrNum='12',gPos=6022032): # genomic pos base1, transcript pos base0
+    return jk.convertGenome2Trans(jk.loadBlatOutputByChr(),chrNum,gPos)
+# output  : [('chr12', 6022032, '-')]
+def convertTrans2Genome_test(transID="NM_000552",transPos=3797):
+    result = jk.convertTrans2Genome(jk.loadBlatOutputByID(),transID,transPos)
     return result
 # /HDD8/ypil/djg-api-test/modules/data/tools/tabix-0.2.6/tabix /HDD8/ypil/djg-api-test/modules/data/BigFiles/SpliceAI/spliceai_scores.raw.indel.hg38.vcf.gz 11:108236168-10823616
 if __name__ == '__main__':
-    print(variant_bi2_test_indel())
+    # print(convertGenome2Trans_test )
+    # print(variant_bi2_test_indel())
+    # print(jk.convertTrans2Genome(jk.loadBlatOutputByID(),"NM_000552",3797) )
     # spliceai_test('chr12:51391349-51391349')
     # spliceai_test('chr11:108236168-108236168')
     # print(jk.locus("chr11:108236168-108236169+").twoBitFrag())
     # print(jk.locus("12:51391349-51391349+").twoBitFrag())
-    # 12 is not in /HDD8/ypil/djg-api-test/modules/data/D/Sequences/hg38/hg38.2bit
-
