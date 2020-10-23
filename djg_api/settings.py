@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'dna_api.apps.DnaApiConfig',
+    # 'dna_api.apps.DnaApiConfig',
+    'vep_api.apps.VepApiConfig',
     'rest_framework',
     'corsheaders',
 ]

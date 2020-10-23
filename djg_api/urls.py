@@ -18,6 +18,7 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('seq/', include('dna_api.urls')),
+    path( '', include('vep_api.urls')),
+    # path('seq/', include('dna_api.urls')),
     # path('', include('dna_api.urls')),
 ]
